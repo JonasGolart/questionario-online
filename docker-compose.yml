@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: questionario_db
+    environment:
+      POSTGRES_USER: questionario
+      POSTGRES_PASSWORD: questionario
+      POSTGRES_DB: questionario_online
+    ports:
+      - "5433:5432"
+    volumes:
+      - questionario_db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  questionario_db_data:

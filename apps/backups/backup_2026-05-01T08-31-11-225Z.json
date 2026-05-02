@@ -1,0 +1,40 @@
+{
+  "timestamp": "2026-05-01T08:31:11.228Z",
+  "version": "1.0",
+  "data": {
+    "users": [
+      {
+        "id": "969a6e52-5669-46dc-a2fb-0d8b2515257c",
+        "fullName": "Jonas Professor",
+        "email": "jonas@gmail.com",
+        "passwordHash": "$2a$10$XVCE/aue3zgFMY0Dq3A/QuU/yLiHrzodujZ2ETtNys/UvItyPVt2e",
+        "role": "PROFESSOR",
+        "active": true,
+        "createdAt": "2026-05-01T08:22:18.628Z",
+        "updatedAt": "2026-05-01T08:22:18.628Z"
+      }
+    ],
+    "questionnaires": [
+      {
+        "id": "fdc40a22-d7ce-4ec1-aafe-034f256ede57",
+        "teacherId": "969a6e52-5669-46dc-a2fb-0d8b2515257c",
+        "name": "Teste 1",
+        "category": "Graduação",
+        "discipline": "Anatomia",
+        "description": "estude",
+        "isPublished": false,
+        "durationMinutes": 60,
+        "scheduledDate": null,
+        "shuffleQuestions": true,
+        "createdAt": "2026-05-01T08:30:41.173Z",
+        "updatedAt": "2026-05-01T08:30:51.413Z",
+        "questions": [],
+        "tokens": [],
+        "attempts": []
+      }
+    ],
+    "questions": [],
+    "tokens": [],
+    "attempts": []
+  }
+}

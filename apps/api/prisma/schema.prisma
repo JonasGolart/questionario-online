@@ -1,0 +1,139 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  PROFESSOR
+}
+
+enum TokenStatus {
+  ACTIVE
+  USED
+  EXPIRED
+  BLOCKED
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  ESSAY
+}
+
+model User {
+  id           String           @id @default(uuid()) @db.Uuid
+  fullName     String
+  email        String           @unique
+  passwordHash String
+  role         UserRole
+  active       Boolean          @default(true)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  questionnaires Questionnaire[]
+  issuedTokens AccessToken[]    @relation("TokenIssuer")
+}
+
+model Questionnaire {
+  id          String      @id @default(uuid()) @db.Uuid
+  teacherId   String      @db.Uuid
+  name        String
+  category    String
+  discipline  String
+  description String?
+  isPublished Boolean     @default(false)
+  durationMinutes Int?
+  questionsPerAttempt Int?
+  scheduledDate   DateTime?
+  shuffleQuestions Boolean @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  teacher     User        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  questions   Question[]
+  tokens      AccessToken[]
+  attempts    Attempt[]
+}
+
+model Question {
+  id              String         @id @default(uuid()) @db.Uuid
+  questionnaireId String         @db.Uuid
+  type            QuestionType   @default(MULTIPLE_CHOICE)
+  statement       String
+  imageUrl        String?
+  options         Json?          // For MULTIPLE_CHOICE: ["option1", "option2", ...]
+  correctAnswer   String?        // For MULTIPLE_CHOICE: "option1" or for ESSAY: stored as is
+  correctAnswers  String[]       // For ESSAY: multiple acceptable answers
+  topic           String?
+  weight          Int            @default(1)
+  position        Int
+  includeInPool   Boolean        @default(true)
+  questionnaire   Questionnaire  @relation(fields: [questionnaireId], references: [id], onDelete: Cascade)
+  answers         Answer[]
+
+  @@index([questionnaireId, position])
+}
+
+model AccessToken {
+  id               String         @id @default(uuid()) @db.Uuid
+  code             String         @unique
+  questionnaireId  String         @db.Uuid
+  issuerId         String         @db.Uuid
+  status           TokenStatus    @default(ACTIVE)
+  boundStudentName String?
+  expiresAt        DateTime
+  maxUses          Int            @default(1)
+  currentUses      Int            @default(0)
+  usedAt           DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  questionnaire    Questionnaire  @relation(fields: [questionnaireId], references: [id], onDelete: Cascade)
+  issuer           User           @relation("TokenIssuer", fields: [issuerId], references: [id], onDelete: Restrict)
+  attempt          Attempt?
+
+  @@index([questionnaireId, status])
+}
+
+model Attempt {
+  id               String         @id @default(uuid()) @db.Uuid
+  questionnaireId  String         @db.Uuid
+  tokenId          String         @unique @db.Uuid
+  studentFullName  String
+  selectedQuestionIds String[] @default([])
+  startedAt        DateTime       @default(now())
+  finishedAt       DateTime?
+  score            Float?
+  percentage       Float?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  questionnaire    Questionnaire  @relation(fields: [questionnaireId], references: [id], onDelete: Cascade)
+  token            AccessToken    @relation(fields: [tokenId], references: [id], onDelete: Restrict)
+  answers          Answer[]
+  feedbackReport   FeedbackReport?
+}
+
+model Answer {
+  id          String   @id @default(uuid()) @db.Uuid
+  attemptId   String   @db.Uuid
+  questionId  String   @db.Uuid
+  answerValue String
+  isCorrect   Boolean
+  points      Float    @default(0)
+  createdAt   DateTime @default(now())
+  attempt     Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Restrict)
+
+  @@unique([attemptId, questionId])
+}
+
+model FeedbackReport {
+  id           String   @id @default(uuid()) @db.Uuid
+  attemptId    String   @unique @db.Uuid
+  summary      String
+  stats        Json
+  weakTopics   Json
+  createdAt    DateTime @default(now())
+  attempt      Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+}

@@ -1,0 +1,7 @@
+# Ignorar arquivos de backup
+*.json
+!README.md
+!.gitkeep
+
+# Diretório contém backups do banco de dados
+# Não devem ser versionados no git, apenas mantidos localmente

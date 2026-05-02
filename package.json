@@ -1,0 +1,14 @@
+{
+  "name": "questionario-online",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w @questionario/api",
+    "build:api": "npm run build -w @questionario/api",
+    "dev:web": "npm run dev -w @questionario/web",
+    "build:web": "npm run build -w @questionario/web"
+  }
+}
