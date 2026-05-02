@@ -23,6 +23,7 @@ type Questionnaire = {
   questions: Array<{
     id: string;
     type?: "MULTIPLE_CHOICE" | "ESSAY";
+    difficulty: "EASY" | "MEDIUM" | "HARD";
     statement: string;
     imageUrl?: string | null;
     options?: any;
@@ -39,6 +40,7 @@ type Questionnaire = {
 type EditableQuestion = {
   id: string;
   type: "MULTIPLE_CHOICE" | "ESSAY";
+  difficulty: "EASY" | "MEDIUM" | "HARD";
   statement: string;
   imageUrl: string;
   optionsText?: string;
@@ -112,9 +114,10 @@ export default function QuestionnaireDetails() {
   const [pdfFileName, setPdfFileName] = useState('');
 
   // JSON preview/validation
-  type JsonPreviewQuestion = { statement: string; type: 'MULTIPLE_CHOICE' | 'ESSAY'; options?: string[]; correctAnswer?: string; correctAnswers?: string[]; topic?: string; };
+  type JsonPreviewQuestion = { statement: string; type: 'MULTIPLE_CHOICE' | 'ESSAY'; difficulty: 'EASY' | 'MEDIUM' | 'HARD'; options?: string[]; correctAnswer?: string; correctAnswers?: string[]; topic?: string; };
   const [jsonPreview, setJsonPreview] = useState<JsonPreviewQuestion[] | null>(null);
   const [jsonPreviewError, setJsonPreviewError] = useState<string | null>(null);
+  const [isFixingJson, setIsFixingJson] = useState(false);
   
   // Question Editing
   const [editingQuestion, setEditingQuestion] = useState<EditableQuestion | null>(null);
@@ -123,6 +126,9 @@ export default function QuestionnaireDetails() {
   const [emailList, setEmailList] = useState('');
   const [isSendingEmails, setIsSendingEmails] = useState(false);
   const [emailResult, setEmailResult] = useState<{ sent: number; failed: number; details: Array<{ email: string; token: string; status: string; error?: string }> } | null>(null);
+  
+  // Filtering
+  const [filterDifficulty, setFilterDifficulty] = useState<'ALL' | 'EASY' | 'MEDIUM' | 'HARD'>('ALL');
 
   // Metadata Editing
   const [isEditingMetadata, setIsEditingMetadata] = useState(false);
@@ -238,7 +244,8 @@ export default function QuestionnaireDetails() {
       const FIELD_NAMES = ['statement','enunciado','pergunta','question','titulo','texto','conteudo'];
       const OPT_NAMES   = ['options','opcoes','alternativas','choices'];
       const ANS_NAMES   = ['correctAnswer','resposta_correta','gabarito','correctAnswers','respostasCorretas','answer','resposta'];
-      const TOPIC_NAMES = ['topic','topico','nivel','assunto','tema'];
+      const TOPIC_NAMES = ['topic','topico','assunto','tema'];
+      const DIFF_NAMES  = ['difficulty','dificuldade','level','nivel','nivel_dificuldade'];
       const preview: JsonPreviewQuestion[] = [];
       for (let i = 0; i < questions.length; i++) {
         const q: AliasMap = questions[i];
@@ -250,6 +257,12 @@ export default function QuestionnaireDetails() {
         const rawOpts = OPT_NAMES.map(k => q[k]).find(v => v != null);
         const rawAns  = ANS_NAMES.map(k => q[k]).find(v => v != null);
         const topic   = TOPIC_NAMES.map(k => q[k]).find(v => typeof v === 'string' && v.trim()) || undefined;
+        
+        const rawDiff = String(DIFF_NAMES.map(k => q[k]).find(v => v != null) || '').toUpperCase();
+        let difficulty: 'EASY' | 'MEDIUM' | 'HARD' = 'MEDIUM';
+        if (rawDiff.includes('FACIL') || rawDiff.includes('FÁCIL') || rawDiff.includes('EASY')) difficulty = 'EASY';
+        else if (rawDiff.includes('MEDIO') || rawDiff.includes('MÉDIO') || rawDiff.includes('MEDIUM')) difficulty = 'MEDIUM';
+        else if (rawDiff.includes('DIFICIL') || rawDiff.includes('DIFÍCIL') || rawDiff.includes('HARD')) difficulty = 'HARD';
         let options: string[] | undefined;
         let keyMap: Record<string, string> = {};
         if (rawOpts && !Array.isArray(rawOpts) && typeof rawOpts === 'object') {
@@ -282,9 +295,31 @@ export default function QuestionnaireDetails() {
         } else {
           correctAnswers = Array.isArray(rawAns) ? rawAns.map(String) : rawAns ? [String(rawAns)] : [];
         }
-        preview.push({ statement: String(statement).trim(), type, options, correctAnswer, correctAnswers, topic });
+        preview.push({ statement: String(statement).trim(), type, difficulty, options, correctAnswer, correctAnswers, topic });
       }
       setJsonPreview(preview);
+    }
+
+    async function handleAiFixJson() {
+      if (!token) return;
+      if (!jsonText.trim()) return;
+      
+      setIsFixingJson(true);
+      setJsonPreviewError(null);
+      
+      try {
+        const result = await postJson<any>(`/api/v1/admin/ai/fix-json`, { jsonText }, token);
+        if (result && result.questions) {
+          setJsonText(JSON.stringify(result, null, 2));
+          setStatus('✨ JSON corrigido e formatado pela IA!');
+          // Opcional: já validar automaticamente após o fix
+          setTimeout(handleValidateJson, 100);
+        }
+      } catch (err: any) {
+        setJsonPreviewError(`IA: ${err.message || 'Erro ao tentar corrigir o JSON'}`);
+      } finally {
+        setIsFixingJson(false);
+      }
     }
 
   async function handleImportJson() {
@@ -495,12 +530,33 @@ export default function QuestionnaireDetails() {
     }
   }
 
+  async function handleJsonFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setStatus('Lendo arquivo JSON...');
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        // Basic validation
+        JSON.parse(content);
+        setJsonText(content);
+        setStatus('JSON carregado do arquivo! Clique em "Verificar" para validar as questões.');
+      } catch {
+        setStatus('❌ Erro: O arquivo não contém um JSON válido.');
+      }
+    };
+    reader.readAsText(file);
+  }
+
   async function handleSaveQuestion() {
     if (!token || !editingQuestion) return;
     setStatus('Salvando questão...');
     try {
       const payload: Record<string, any> = {
         type: editingQuestion.type,
+        difficulty: editingQuestion.difficulty,
         statement: editingQuestion.statement,
         imageUrl: editingQuestion.imageUrl || undefined,
         topic: editingQuestion.topic || null,
@@ -791,8 +847,17 @@ export default function QuestionnaireDetails() {
 
                 {!jsonPreview ? (
                   <>
+                    <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: 'rgba(139,92,246,0.05)', borderRadius: '8px', border: '1px dashed #8b5cf6' }}>
+                      <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.8rem', fontWeight: 600, color: '#7c3aed' }}>📁 Carregar de um arquivo .json</p>
+                      <input 
+                        type="file" 
+                        accept=".json,application/json" 
+                        onChange={handleJsonFileUpload}
+                        style={{ fontSize: '0.8rem' }}
+                      />
+                    </div>
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
-                      Cole o JSON abaixo. Clique em <strong>Verificar</strong> para validar antes de salvar.
+                      Ou cole o código JSON abaixo. Clique em <strong>Verificar</strong> para validar antes de salvar.
                     </p>
                     <textarea
                       className="input-field"
@@ -808,8 +873,45 @@ export default function QuestionnaireDetails() {
                       </div>
                     )}
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button onClick={handleValidateJson} className="btn-primary" style={{ backgroundColor: '#7c3aed' }}>🔍 Verificar JSON</button>
-                      <button onClick={() => { setImportMode(null); setJsonPreviewError(null); setJsonText(JSON_IMPORT_TEMPLATE); }} className="btn-primary" style={{ backgroundColor: 'transparent', color: 'var(--text-primary)', border: '1px solid var(--border)' }}>Cancelar</button>
+                      <button 
+                        onClick={handleValidateJson} 
+                        className="btn-primary" 
+                        disabled={isFixingJson}
+                        style={{ backgroundColor: '#7c3aed' }}
+                      >
+                        {isFixingJson ? '⏳ Analisando...' : '🔍 Verificar JSON'}
+                      </button>
+
+                      <button 
+                        onClick={handleAiFixJson} 
+                        className="btn-primary"
+                        disabled={isFixingJson}
+                        style={{ 
+                          backgroundColor: 'rgba(124, 58, 237, 0.1)', 
+                          color: '#7c3aed', 
+                          border: '1px solid #7c3aed' 
+                        }}
+                      >
+                        {isFixingJson ? '✨ Corrigindo...' : '🪄 Corrigir com IA'}
+                      </button>
+
+                      <button 
+                        onClick={() => { setJsonPreviewError(null); setJsonText(''); }} 
+                        className="btn-primary" 
+                        disabled={isFixingJson}
+                        style={{ backgroundColor: 'transparent', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+                      >
+                        Limpar Campo
+                      </button>
+
+                      <button 
+                        onClick={() => { setImportMode(null); setJsonPreviewError(null); setJsonText(JSON_IMPORT_TEMPLATE); }} 
+                        className="btn-primary" 
+                        disabled={isFixingJson}
+                        style={{ backgroundColor: 'transparent', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+                      >
+                        Cancelar
+                      </button>
                     </div>
                   </>
                 ) : (
@@ -839,6 +941,9 @@ export default function QuestionnaireDetails() {
                                   Respostas: {q.correctAnswers.join(', ')}
                                 </span>
                               )}
+                              <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '4px', backgroundColor: q.difficulty === 'EASY' ? 'rgba(34,197,94,0.1)' : q.difficulty === 'MEDIUM' ? 'rgba(234,179,8,0.1)' : 'rgba(239,68,68,0.1)', color: q.difficulty === 'EASY' ? '#16a34a' : q.difficulty === 'MEDIUM' ? '#ca8a04' : '#dc2626', fontWeight: 700 }}>
+                                {q.difficulty === 'EASY' ? 'FÁCIL' : q.difficulty === 'MEDIUM' ? 'MÉDIO' : 'DIFÍCIL'}
+                              </span>
                               {q.topic && (
                                 <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', padding: '0.1rem 0.4rem', borderRadius: '4px', backgroundColor: 'rgba(0,0,0,0.05)' }}>
                                   {q.topic}
@@ -870,10 +975,43 @@ export default function QuestionnaireDetails() {
                 </div>
               </div>
             )}
+            {/* Filter Section */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', padding: '0.5rem', backgroundColor: 'var(--bg-main)', borderRadius: '8px' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Filtrar Nível:</span>
+              <div style={{ display: 'flex', gap: '0.25rem' }}>
+                {(['ALL', 'EASY', 'MEDIUM', 'HARD'] as const).map((level) => (
+                  <button
+                    key={level}
+                    onClick={() => setFilterDifficulty(level)}
+                    style={{
+                      padding: '0.2rem 0.6rem',
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      borderRadius: '4px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      backgroundColor: filterDifficulty === level 
+                        ? (level === 'EASY' ? '#16a34a' : level === 'MEDIUM' ? '#ca8a04' : level === 'HARD' ? '#dc2626' : 'var(--primary)')
+                        : 'rgba(0,0,0,0.05)',
+                      color: filterDifficulty === level ? 'white' : 'var(--text-secondary)',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {level === 'ALL' ? 'TODAS' : level === 'EASY' ? 'FÁCIL' : level === 'MEDIUM' ? 'MÉDIO' : 'DIFÍCIL'}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <div style={{ display: 'grid', gap: '1rem' }}>
-              {questionnaire.questions.length === 0 && <p style={{ color: 'var(--text-secondary)' }}>Nenhuma questão cadastrada.</p>}
-              {questionnaire.questions.map((q) => (
+              {questionnaire.questions.filter(q => filterDifficulty === 'ALL' || q.difficulty === filterDifficulty).length === 0 && (
+                <p style={{ color: 'var(--text-secondary)', padding: '1rem', textAlign: 'center' }}>
+                  Nenhuma questão encontrada com este filtro.
+                </p>
+              )}
+              {questionnaire.questions
+                .filter(q => filterDifficulty === 'ALL' || q.difficulty === filterDifficulty)
+                .map((q) => (
                 <div key={q.id} style={{ border: '1px solid var(--border)', borderRadius: '8px', padding: '1rem', opacity: q.includeInPool ? 1 : 0.5 }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
                     <div style={{ paddingTop: '0.25rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
@@ -912,12 +1050,16 @@ export default function QuestionnaireDetails() {
                     ) : (
                       <span>✅ <strong>{q.correctAnswer}</strong></span>
                     )}
+                    <span style={{ color: q.difficulty === 'EASY' ? '#16a34a' : q.difficulty === 'MEDIUM' ? '#ca8a04' : '#dc2626', fontWeight: 700 }}>
+                      Nível: {q.difficulty === 'EASY' ? 'Fácil' : q.difficulty === 'MEDIUM' ? 'Médio' : 'Difícil'}
+                    </span>
                     <span>Tópico: {q.topic || 'Geral'}</span>
                     <span>Peso: {q.weight}</span>
                   </div>
                   <button onClick={() => setEditingQuestion({
                     id: q.id,
                     type: q.type || 'MULTIPLE_CHOICE',
+                    difficulty: q.difficulty,
                     statement: q.statement,
                     imageUrl: q.imageUrl || '',
                     optionsText: Array.isArray(q.options) 
@@ -993,9 +1135,28 @@ export default function QuestionnaireDetails() {
                       </>
                     )}
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                      <input className="input-field" value={editingQuestion.topic} onChange={(e) => setEditingQuestion({ ...editingQuestion, topic: e.target.value })} placeholder="Tópico" />
-                      <input className="input-field" type="number" value={editingQuestion.weight} onChange={(e) => setEditingQuestion({ ...editingQuestion, weight: Number(e.target.value) })} placeholder="Peso" />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Nível de Dificuldade</label>
+                        <select 
+                          className="input-field" 
+                          value={editingQuestion.difficulty} 
+                          onChange={(e) => setEditingQuestion({ ...editingQuestion, difficulty: e.target.value as any })}
+                          style={{ width: '100%' }}
+                        >
+                          <option value="EASY">Fácil</option>
+                          <option value="MEDIUM">Médio</option>
+                          <option value="HARD">Difícil</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Tópico</label>
+                        <input className="input-field" value={editingQuestion.topic} onChange={(e) => setEditingQuestion({ ...editingQuestion, topic: e.target.value })} placeholder="Tópico" />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Peso</label>
+                        <input className="input-field" type="number" value={editingQuestion.weight} onChange={(e) => setEditingQuestion({ ...editingQuestion, weight: Number(e.target.value) })} placeholder="Peso" />
+                      </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem', backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: '6px' }}>
                       <input 

@@ -241,16 +241,25 @@ export async function importQuestionsFromJson(input: {
   // Normalize questions - this handles multiple formats and detects question types
   const normalized = normalizeQuestions(input.questions);
 
-  // Convert normalized questions to database format
+  // 1. Descobrir a última posição para continuar a sequência
+  const lastQuestion = await prisma.question.findFirst({
+    where: { questionnaireId: input.questionnaireId },
+    orderBy: { position: 'desc' },
+    select: { position: true }
+  });
+  const startPosition = (lastQuestion?.position || 0) + 1;
+
+  // 2. Mapear questões com as novas posições
   const dbQuestions = normalized.map((question: NormalizedQuestion, index: number) => {
     const baseData = {
       questionnaireId: input.questionnaireId,
       type: question.type,
+      difficulty: question.difficulty,
       statement: question.statement,
       imageUrl: question.imageUrl || null,
       topic: question.topic || null,
       weight: question.weight,
-      position: index + 1,
+      position: startPosition + index,
       includeInPool: true
     };
 
@@ -262,7 +271,6 @@ export async function importQuestionsFromJson(input: {
         correctAnswers: []
       };
     } else {
-      // ESSAY
       return {
         ...baseData,
         options: [],
@@ -273,7 +281,7 @@ export async function importQuestionsFromJson(input: {
   });
 
   await prisma.$transaction(async (tx) => {
-    await tx.question.deleteMany({ where: { questionnaireId: input.questionnaireId } });
+    // REMOVIDO: tx.question.deleteMany
     await tx.question.createMany({ data: dbQuestions });
   });
 
@@ -347,6 +355,13 @@ export async function importQuestionsFromPdfBuffer(input: {
     throw new Error("PDF_PARSE_NO_QUESTIONS");
   }
 
+  const lastQuestion = await prisma.question.findFirst({
+    where: { questionnaireId: input.questionnaireId },
+    orderBy: { position: 'desc' },
+    select: { position: true }
+  });
+  const startPosition = (lastQuestion?.position || 0) + 1;
+
   const normalizedQuestions = extractedQuestions.map((question, index) => {
     if (question.options.length < 2) {
       throw new Error("QUESTION_OPTIONS_INVALID");
@@ -363,13 +378,13 @@ export async function importQuestionsFromPdfBuffer(input: {
       correctAnswer: question.correctAnswer,
       topic: "extraido_pdf",
       weight: 1,
-      position: index + 1,
+      position: startPosition + index,
       includeInPool: true
     };
   });
 
   await prisma.$transaction(async (tx) => {
-    await tx.question.deleteMany({ where: { questionnaireId: input.questionnaireId } });
+    // REMOVIDO: tx.question.deleteMany
     await tx.question.createMany({ data: normalizedQuestions });
   });
 
@@ -457,6 +472,7 @@ export async function updateQuestion(input: {
 
   const baseData = {
     type: input.type || question.type,
+    difficulty: input.difficulty || question.difficulty,
     statement: (input.statement || question.statement).trim(),
     imageUrl: input.imageUrl !== undefined ? (input.imageUrl?.trim() || null) : question.imageUrl,
     topic: input.topic !== undefined ? (input.topic?.trim() || null) : question.topic,

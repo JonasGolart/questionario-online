@@ -7,6 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
 enum UserRole {
   ADMIN
   PROFESSOR
@@ -61,6 +67,7 @@ model Question {
   id              String         @id @default(uuid()) @db.Uuid
   questionnaireId String         @db.Uuid
   type            QuestionType   @default(MULTIPLE_CHOICE)
+  difficulty      Difficulty     @default(MEDIUM)
   statement       String
   imageUrl        String?
   options         Json?          // For MULTIPLE_CHOICE: ["option1", "option2", ...]

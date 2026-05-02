@@ -17,6 +17,7 @@ import {
   updateQuestionnaire
 } from "../services/adminService.js";
 import { sendTokensByEmail } from "../services/emailService.js";
+import { aiFixJson } from "../utils/aiFixer.js";
 
 const bootstrapSchema = z.object({
   fullName: z.string().min(5),
@@ -62,6 +63,7 @@ const updateQuestionBaseSchema = z.object({
   statement: z.string().min(3).optional(),
   imageUrl: z.string().min(1).max(2_000_000).optional(),
   topic: z.string().optional(),
+  difficulty: z.enum(["EASY", "MEDIUM", "HARD"]).optional(),
   weight: z.number().positive().optional(),
   includeInPool: z.boolean().optional()
 });
@@ -146,6 +148,16 @@ export async function adminRoutes(app: FastifyInstance) {
         role: user.role
       });
       return reply.send(result);
+    } catch (error) {
+      return mapError(reply, error);
+    }
+  });
+
+  app.post("/api/v1/admin/ai/fix-json", { preHandler: [app.authenticate] }, async (request, reply) => {
+    try {
+      const { jsonText } = z.object({ jsonText: z.string() }).parse(request.body);
+      const fixed = aiFixJson(jsonText);
+      return reply.send(fixed);
     } catch (error) {
       return mapError(reply, error);
     }

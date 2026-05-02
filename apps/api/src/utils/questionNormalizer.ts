@@ -1,9 +1,10 @@
-import { QuestionType } from "@prisma/client";
+import { QuestionType, Difficulty } from "@prisma/client";
 
 type RawQuestion = Record<string, any>;
 
 export type NormalizedQuestion = {
   type: QuestionType;
+  difficulty: Difficulty;
   statement: string;
   imageUrl?: string | null;
   options?: string[];
@@ -165,8 +166,20 @@ export function normalizeQuestion(raw: RawQuestion, index: number): NormalizedQu
   const statement = extractStatement(raw);
   const imageUrl = extractImage(raw);
   const correctAnswers = extractCorrectAnswers(raw);
-  const topic = (raw.topic || raw.topico || raw.assunto || raw.nivel || raw.tema || "").trim() || undefined;
+  const topic = (raw.topic || raw.topico || raw.assunto || raw.tema || "").trim() || undefined;
   const weight = Math.max(1, Math.floor(Number(raw.weight || raw.peso || 1)));
+
+  // Difficulty normalization
+  const rawDifficulty = String(raw.difficulty || raw.dificuldade || raw.level || raw.nivel || raw.nivel_dificuldade || "").toUpperCase();
+  let difficulty: Difficulty = Difficulty.MEDIUM;
+  
+  if (rawDifficulty.includes("FACIL") || rawDifficulty.includes("FÁCIL") || rawDifficulty.includes("EASY")) {
+    difficulty = Difficulty.EASY;
+  } else if (rawDifficulty.includes("MEDIO") || rawDifficulty.includes("MÉDIO") || rawDifficulty.includes("MEDIUM")) {
+    difficulty = Difficulty.MEDIUM;
+  } else if (rawDifficulty.includes("DIFICIL") || rawDifficulty.includes("DIFÍCIL") || rawDifficulty.includes("HARD")) {
+    difficulty = Difficulty.HARD;
+  }
 
   const optionsResult = extractOptions(raw);
 
@@ -203,6 +216,7 @@ export function normalizeQuestion(raw: RawQuestion, index: number): NormalizedQu
 
     return {
       type: QuestionType.MULTIPLE_CHOICE,
+      difficulty,
       statement,
       imageUrl,
       options,
@@ -214,6 +228,7 @@ export function normalizeQuestion(raw: RawQuestion, index: number): NormalizedQu
     // ESSAY - discursiva com múltiplas respostas aceitáveis
     return {
       type: QuestionType.ESSAY,
+      difficulty,
       statement,
       imageUrl,
       correctAnswers: correctAnswers.length > 0 ? correctAnswers : [""],
