@@ -200,6 +200,7 @@ export async function submitAttempt(payload: StudentSubmitRequest) {
   let finalAttemptId = payload.attemptId;
 
   // Iniciar transação para garantir atomicidade e evitar condições de corrida
+  // Aumentado o timeout para 30s para evitar erros em servidores sob carga
   await prisma.$transaction(async (tx) => {
     const attempt = await tx.attempt.findUnique({
       where: { id: payload.attemptId },
@@ -345,6 +346,8 @@ export async function submitAttempt(payload: StudentSubmitRequest) {
         weakTopics
       }
     });
+  }, {
+    timeout: 30000 // 30 segundos
   });
 
   const report = await prisma.feedbackReport.findUnique({ where: { attemptId: finalAttemptId } });
