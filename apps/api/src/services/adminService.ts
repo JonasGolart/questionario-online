@@ -3,7 +3,7 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pdf = require('pdf-parse');
 import type { FastifyInstance } from "fastify";
-import { UserRole, QuestionType, QuestionDifficulty } from "@prisma/client";
+import { UserRole, QuestionType, Difficulty } from "@prisma/client";
 import { prisma } from "../config/db.js";
 import { env } from "../config/env.js";
 import {
@@ -460,7 +460,7 @@ export async function updateQuestion(input: {
   userId: string;
   role: UserRole;
   type?: QuestionType;
-  difficulty?: QuestionDifficulty;
+  difficulty?: Difficulty;
   statement?: string;
   imageUrl?: string | null;
   options?: string[];
