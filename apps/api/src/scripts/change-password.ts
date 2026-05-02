@@ -1,20 +1,23 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../config/db.js";
+import { UserRole } from "@prisma/client";
 
 async function changeAdminPassword() {
-  const email = "jonas@stackfab.com.br"; // Seu e-mail de admin
   const newPassword = "Jonas260778!@#$%";
   
-  console.log(`--- Alterando senha para ${email} ---`);
+  console.log(`--- Buscando usuário administrador ---`);
   
-  const user = await prisma.user.findUnique({
-    where: { email: email.toLowerCase() }
+  // Busca o primeiro usuário que seja ADMIN
+  const user = await prisma.user.findFirst({
+    where: { role: UserRole.ADMIN }
   });
 
   if (!user) {
-    console.error("❌ Erro: Usuário administrador não encontrado.");
+    console.error("❌ Erro: Nenhum usuário administrador encontrado no banco de dados.");
     process.exit(1);
   }
+
+  console.log(`--- Alterando senha para o admin: ${user.email} ---`);
 
   const passwordHash = await bcrypt.hash(newPassword, 10);
   
