@@ -8,6 +8,7 @@ type ActiveAttempt = {
   attemptId: string;
   startedAt: string;
   studentFullName: string;
+  studentToken: string;
   questionnaire: {
     id: string;
     name: string;
@@ -48,7 +49,8 @@ export default function BoasVindas() {
       // Sincronizar início do timer no servidor
       const updated = await postJson<{ startedAt: string }>(
         `/api/v1/student/attempts/${attempt.attemptId}/start-timer`,
-        {}
+        {},
+        attempt.studentToken
       );
 
       // Atualizar localStorage com o novo startedAt
