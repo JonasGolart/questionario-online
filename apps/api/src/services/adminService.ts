@@ -3,7 +3,7 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pdf = require('pdf-parse');
 import type { FastifyInstance } from "fastify";
-import { UserRole, QuestionType } from "@prisma/client";
+import { UserRole, QuestionType, QuestionDifficulty } from "@prisma/client";
 import { prisma } from "../config/db.js";
 import { env } from "../config/env.js";
 import {
@@ -17,13 +17,14 @@ type CreateQuestionnaireInput = {
   name: string;
   category: string;
   discipline: string;
-  description?: string;
-  durationMinutes?: number;
-  questionsPerAttempt?: number;
-  easyCount?: number;
-  mediumCount?: number;
-  hardCount?: number;
-  scheduledDate?: string; // Expect ISO string from frontend
+  description?: string | null;
+  durationMinutes?: number | null;
+  questionsPerAttempt?: number | null;
+  easyCount?: number | null;
+  mediumCount?: number | null;
+  hardCount?: number | null;
+  scheduledDate?: string | null;
+  shuffleQuestions?: boolean | null;
 };
 
 type QuestionImportInput = {
@@ -100,13 +101,14 @@ export async function createQuestionnaire(input: CreateQuestionnaireInput) {
       name: input.name,
       category: input.category,
       discipline: input.discipline,
-      description: input.description,
-      durationMinutes: input.durationMinutes,
-      questionsPerAttempt: input.questionsPerAttempt,
-      easyCount: input.easyCount,
-      mediumCount: input.mediumCount,
-      hardCount: input.hardCount,
-      scheduledDate: input.scheduledDate ? new Date(input.scheduledDate) : null
+      description: input.description ?? null,
+      durationMinutes: input.durationMinutes ?? null,
+      questionsPerAttempt: input.questionsPerAttempt ?? null,
+      easyCount: input.easyCount ?? null,
+      mediumCount: input.mediumCount ?? null,
+      hardCount: input.hardCount ?? null,
+      scheduledDate: input.scheduledDate ? new Date(input.scheduledDate) : null,
+      shuffleQuestions: input.shuffleQuestions ?? true
     }
   });
 }
@@ -147,14 +149,14 @@ export async function updateQuestionnaire(input: {
   name?: string;
   category?: string;
   discipline?: string;
-  description?: string;
-  durationMinutes?: number;
-  questionsPerAttempt?: number;
-  easyCount?: number;
-  mediumCount?: number;
-  hardCount?: number;
+  description?: string | null;
+  durationMinutes?: number | null;
+  questionsPerAttempt?: number | null;
+  easyCount?: number | null;
+  mediumCount?: number | null;
+  hardCount?: number | null;
   scheduledDate?: string | null;
-  shuffleQuestions?: boolean;
+  shuffleQuestions?: boolean | null;
 }) {
   const questionnaire = await prisma.questionnaire.findUnique({
     where: { id: input.questionnaireId }
@@ -181,7 +183,7 @@ export async function updateQuestionnaire(input: {
       mediumCount: input.mediumCount,
       hardCount: input.hardCount,
       scheduledDate: input.scheduledDate ? new Date(input.scheduledDate) : (input.scheduledDate === null || input.scheduledDate === "" ? null : undefined),
-      shuffleQuestions: input.shuffleQuestions
+      shuffleQuestions: input.shuffleQuestions ?? undefined
     }
   });
 }
@@ -458,12 +460,13 @@ export async function updateQuestion(input: {
   userId: string;
   role: UserRole;
   type?: QuestionType;
+  difficulty?: QuestionDifficulty;
   statement?: string;
-  imageUrl?: string;
+  imageUrl?: string | null;
   options?: string[];
-  correctAnswer?: string;
+  correctAnswer?: string | null;
   correctAnswers?: string[];
-  topic?: string;
+  topic?: string | null;
   weight?: number;
   includeInPool?: boolean;
 }) {
@@ -520,7 +523,7 @@ export async function updateQuestion(input: {
     throw new Error("QUESTION_OPTIONS_INVALID");
   }
 
-  if (!options.includes(correctAnswer)) {
+  if (correctAnswer && !options.includes(correctAnswer)) {
     throw new Error("QUESTION_CORRECT_ANSWER_INVALID");
   }
 

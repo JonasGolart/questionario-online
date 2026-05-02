@@ -193,8 +193,14 @@ export async function startAttempt(payloadOrApp: StudentStartRequest | FastifyIn
 }
 
 export async function submitAttempt(payload: StudentSubmitRequest) {
+  // Inicializar variáveis de retorno para garantir escopo fora da transação
+  let finalScore = 0;
+  let finalTotalPoints = 0;
+  let finalCorrectionDetails: any = {};
+  let finalAttemptId = payload.attemptId;
+
   // Iniciar transação para garantir atomicidade e evitar condições de corrida
-  return prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx) => {
     const attempt = await tx.attempt.findUnique({
       where: { id: payload.attemptId },
       include: {
@@ -304,6 +310,12 @@ export async function submitAttempt(payload: StudentSubmitRequest) {
       }
     });
 
+    // Atribuir valores para as variáveis externas
+    finalScore = score;
+    finalTotalPoints = totalPoints;
+    finalCorrectionDetails = correctionDetails;
+    finalAttemptId = attempt.id;
+
     await tx.accessToken.update({
       where: { id: attempt.tokenId },
       data: {
@@ -335,19 +347,15 @@ export async function submitAttempt(payload: StudentSubmitRequest) {
     });
   });
 
-  const report = await prisma.feedbackReport.findUnique({ where: { attemptId: attempt.id } });
+  const report = await prisma.feedbackReport.findUnique({ where: { attemptId: finalAttemptId } });
+  const reportStats = report?.stats as any;
 
   return {
-    score: report?.stats && typeof report.stats === "object" && "score" in report.stats ? (report.stats as { score: number }).score : score,
-    percentage:
-      report?.stats && typeof report.stats === "object" && "percentage" in report.stats
-        ? (report.stats as { percentage: number }).percentage
-        : totalPoints === 0
-          ? 0
-          : Number(((score / totalPoints) * 100).toFixed(2)),
-    feedback: report?.summary ?? buildSummary(score, totalPoints),
-    weakTopics: report?.weakTopics ?? [],
-    correctAnswers: correctionDetails
+    score: reportStats?.score ?? finalScore,
+    percentage: reportStats?.percentage ?? (finalTotalPoints === 0 ? 0 : Number(((finalScore / finalTotalPoints) * 100).toFixed(2))),
+    feedback: report?.summary ?? buildSummary(finalScore, finalTotalPoints),
+    weakTopics: (report?.weakTopics as any[]) ?? [],
+    correctAnswers: finalCorrectionDetails
   };
 }
 
