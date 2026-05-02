@@ -9,7 +9,11 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: "Questionário Online",
-  description: "Plataforma de questionários da StackFAB",
+  description: "Plataforma de avaliações técnicas da StackFAB",
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  }
 };
 
 export default function RootLayout({

@@ -41,11 +41,11 @@ export default function AdminLogin() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '1rem' }}>
       <div className="card" style={{ maxWidth: '400px', width: '100%' }}>
-        <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'center' }}>
           <img
-            src="/utfpr-logo.png"
-            alt="UTFPR Logo"
-            style={{ width: '160px', height: 'auto', objectFit: 'contain' }}
+            src="/logo.png"
+            alt="Questionário Online Logo"
+            style={{ width: '100px', height: '100px', objectFit: 'contain', borderRadius: '16px', boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }}
           />
         </div>
         <h2 style={{ marginBottom: '0.5rem', textAlign: 'center' }}>Acesso Restrito</h2>
