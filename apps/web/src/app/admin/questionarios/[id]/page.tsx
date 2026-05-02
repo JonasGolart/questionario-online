@@ -1086,7 +1086,7 @@ export default function QuestionnaireDetails() {
                       <input 
                         type="checkbox" 
                         checked={q.includeInPool} 
-                        onChange={() => toggleIncludeInPool(q.id, q.includeInPool, q.type)}
+                        onChange={() => toggleIncludeInPool(q.id, q.includeInPool, q.type || 'MULTIPLE_CHOICE')}
                         title="Incluir no pool de questões desta avaliação"
                         style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: 'var(--primary)' }}
                       />
