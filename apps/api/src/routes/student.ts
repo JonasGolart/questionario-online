@@ -18,7 +18,14 @@ const submitSchema = z.object({
 });
 
 export async function studentRoutes(app: FastifyInstance) {
-  app.post("/api/v1/student/start", async (request, reply) => {
+  app.post("/api/v1/student/start", {
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: "1 minute"
+      }
+    }
+  }, async (request, reply) => {
     try {
       const payload = startSchema.parse(request.body);
       const result = await startAttempt(app, payload);
@@ -52,6 +59,17 @@ export async function studentRoutes(app: FastifyInstance) {
   app.post("/api/v1/student/attempts/:id/start-timer", async (request, reply) => {
     try {
       const params = z.object({ id: z.string().uuid() }).parse(request.params);
+      
+      // Validação JWT para o timer
+      try {
+        const decoded = await request.jwtVerify() as { sub: string, role: string };
+        if (decoded.role !== 'student' || decoded.sub !== params.id) {
+          return reply.code(403).send({ error: "FORBIDDEN_TIMER" });
+        }
+      } catch {
+        return reply.code(401).send({ error: "UNAUTHORIZED_TIMER" });
+      }
+
       const result = await startTimer(params.id);
       return reply.send(result);
     } catch (error) {

@@ -37,6 +37,9 @@ const questionnaireSchema = z.object({
   description: z.string().max(4000).optional(),
   durationMinutes: z.number().int().positive().optional(),
   questionsPerAttempt: z.number().int().positive().nullable().optional(),
+  easyCount: z.number().int().nonnegative().nullable().optional(),
+  mediumCount: z.number().int().nonnegative().nullable().optional(),
+  hardCount: z.number().int().nonnegative().nullable().optional(),
   scheduledDate: z.string().optional().nullable(),
   shuffleQuestions: z.boolean().optional()
 });

@@ -53,8 +53,11 @@ model Questionnaire {
   isPublished Boolean     @default(false)
   durationMinutes Int?
   questionsPerAttempt Int?
-  scheduledDate   DateTime?
-  shuffleQuestions Boolean @default(false)
+  easyCount           Int?
+  mediumCount         Int?
+  hardCount           Int?
+  scheduledDate       DateTime?
+  shuffleQuestions    Boolean @default(false)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   teacher     User        @relation(fields: [teacherId], references: [id], onDelete: Cascade)

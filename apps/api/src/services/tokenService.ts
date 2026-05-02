@@ -1,4 +1,4 @@
-import { TokenStatus, QuestionType } from "@prisma/client";
+import { TokenStatus, QuestionType, Difficulty } from "@prisma/client";
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../config/db.js";
 import type { StudentStartRequest, StudentSubmitRequest } from "../types/domain.js";
@@ -116,25 +116,39 @@ export async function startAttempt(payloadOrApp: StudentStartRequest | FastifyIn
       });
 
   // Logic for random question selection
-  // Get candidates for the pool
   const poolQuestions = token.questionnaire.questions.filter(q => q.includeInPool !== false);
-  let selectedQuestions = poolQuestions;
-  let selectedQuestionIds: string[] = [];
+  let selectedQuestions: typeof poolQuestions = [];
 
-  if (token.questionnaire.questionsPerAttempt && token.questionnaire.questionsPerAttempt > 0) {
-    const count = Math.min(token.questionnaire.questionsPerAttempt, poolQuestions.length);
-    // Fisher-Yates shuffle
-    const shuffled = [...poolQuestions];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  const { easyCount, mediumCount, hardCount, questionsPerAttempt } = token.questionnaire;
+
+  // Se o professor definiu quantidades específicas por nível
+  if ((easyCount || mediumCount || hardCount) && (Number(easyCount || 0) + Number(mediumCount || 0) + Number(hardCount || 0)) > 0) {
+    const easyPool = poolQuestions.filter(q => q.difficulty === Difficulty.EASY);
+    const mediumPool = poolQuestions.filter(q => q.difficulty === Difficulty.MEDIUM);
+    const hardPool = poolQuestions.filter(q => q.difficulty === Difficulty.HARD);
+
+    const pickedEasy = shuffleArray(easyPool).slice(0, easyCount || 0);
+    const pickedMedium = shuffleArray(mediumPool).slice(0, mediumCount || 0);
+    const pickedHard = shuffleArray(hardPool).slice(0, hardCount || 0);
+
+    selectedQuestions = [...pickedEasy, ...pickedMedium, ...pickedHard];
+    
+    // Se o professor quer embaralhar a ordem final
+    if (token.questionnaire.shuffleQuestions) {
+      selectedQuestions = shuffleArray(selectedQuestions);
     }
-    selectedQuestions = shuffled.slice(0, count);
-    selectedQuestionIds = selectedQuestions.map(q => q.id);
-  } else if (poolQuestions.length < token.questionnaire.questions.length) {
-    // If no random pick but some questions were excluded manually
-    selectedQuestionIds = poolQuestions.map(q => q.id);
+  } 
+  // Senão, usa a lógica antiga de total aleatório
+  else if (questionsPerAttempt && questionsPerAttempt > 0) {
+    const count = Math.min(questionsPerAttempt, poolQuestions.length);
+    selectedQuestions = shuffleArray(poolQuestions).slice(0, count);
+  } 
+  // Caso contrário, pega todas as questões do pool
+  else {
+    selectedQuestions = poolQuestions;
   }
+
+  const selectedQuestionIds = selectedQuestions.map(q => q.id);
 
   const attempt = await prisma.attempt.create({
     data: {
@@ -179,25 +193,27 @@ export async function startAttempt(payloadOrApp: StudentStartRequest | FastifyIn
 }
 
 export async function submitAttempt(payload: StudentSubmitRequest) {
-  const attempt = await prisma.attempt.findUnique({
-    where: { id: payload.attemptId },
-    include: {
-      token: true,
-      questionnaire: {
-        include: {
-          questions: true
+  // Iniciar transação para garantir atomicidade e evitar condições de corrida
+  return prisma.$transaction(async (tx) => {
+    const attempt = await tx.attempt.findUnique({
+      where: { id: payload.attemptId },
+      include: {
+        token: true,
+        questionnaire: {
+          include: {
+            questions: true
+          }
         }
       }
+    });
+
+    if (!attempt) {
+      throw new Error("ATTEMPT_NOT_FOUND");
     }
-  });
 
-  if (!attempt) {
-    throw new Error("ATTEMPT_NOT_FOUND");
-  }
-
-  if (attempt.finishedAt) {
-    throw new Error("ATTEMPT_ALREADY_FINISHED");
-  }
+    if (attempt.finishedAt) {
+      throw new Error("ATTEMPT_ALREADY_FINISHED");
+    }
 
   // Validação de tempo (Time-limit Protection)
   if (attempt.questionnaire.durationMinutes) {
@@ -242,8 +258,8 @@ export async function submitAttempt(payload: StudentSubmitRequest) {
       const normalizedCorrect = question.correctAnswer.toLowerCase();
       isCorrect = normalizedSelected.length > 0 && normalizedSelected === normalizedCorrect;
     } else if (question.type === QuestionType.ESSAY) {
-      // Essay question - accept any non-empty answer, will be reviewed by teacher
-      isCorrect = selectedAnswer.length > 0;
+      // Essay question - score is 0 by default, needs teacher review
+      isCorrect = false;
     }
     
     const points = isCorrect ? question.weight : 0;
@@ -275,7 +291,6 @@ export async function submitAttempt(payload: StudentSubmitRequest) {
     };
   });
 
-  await prisma.$transaction(async (tx) => {
     await tx.answer.createMany({ data: answerRows });
 
     const percentage = totalPoints === 0 ? 0 : Number(((score / totalPoints) * 100).toFixed(2));
@@ -367,6 +382,15 @@ async function buildUniqueTestSessionCode() {
   }
 
   throw new Error("TOKEN_GENERATION_FAILED");
+}
+
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
 }
 
 function normalizeFullName(name: string): string {

@@ -1,0 +1,38 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Instalar dependências necessárias para o Prisma e build
+RUN apk add --no-cache openssl
+
+# Copiar arquivos de workspace
+COPY package*.json ./
+COPY apps/api/package*.json ./apps/api/
+
+# Instalar todas as dependências (incluindo dev para o build)
+RUN npm install
+
+# Copiar o restante do código
+COPY . .
+
+# Gerar o Prisma Client e fazer o build do código TS
+RUN npm run prisma:generate -w @questionario/api
+RUN npm run build -w @questionario/api
+
+# --- Estágio Final ---
+FROM node:20-alpine
+
+WORKDIR /app
+RUN apk add --no-cache openssl
+
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/apps/api/package*.json ./apps/api/
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/api/dist ./apps/api/dist
+COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+
+ENV NODE_ENV=production
+EXPOSE 3333
+
+# Comando para rodar migrações antes de iniciar (importante no Coolify)
+CMD ["sh", "-c", "npx prisma migrate deploy --schema ./apps/api/prisma/schema.prisma && npm run start -w @questionario/api"]

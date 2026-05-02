@@ -20,6 +20,9 @@ type CreateQuestionnaireInput = {
   description?: string;
   durationMinutes?: number;
   questionsPerAttempt?: number;
+  easyCount?: number;
+  mediumCount?: number;
+  hardCount?: number;
   scheduledDate?: string; // Expect ISO string from frontend
 };
 
@@ -100,6 +103,9 @@ export async function createQuestionnaire(input: CreateQuestionnaireInput) {
       description: input.description,
       durationMinutes: input.durationMinutes,
       questionsPerAttempt: input.questionsPerAttempt,
+      easyCount: input.easyCount,
+      mediumCount: input.mediumCount,
+      hardCount: input.hardCount,
       scheduledDate: input.scheduledDate ? new Date(input.scheduledDate) : null
     }
   });
@@ -144,7 +150,10 @@ export async function updateQuestionnaire(input: {
   description?: string;
   durationMinutes?: number;
   questionsPerAttempt?: number;
-  scheduledDate?: string;
+  easyCount?: number;
+  mediumCount?: number;
+  hardCount?: number;
+  scheduledDate?: string | null;
   shuffleQuestions?: boolean;
 }) {
   const questionnaire = await prisma.questionnaire.findUnique({
@@ -168,6 +177,9 @@ export async function updateQuestionnaire(input: {
       description: input.description,
       durationMinutes: input.durationMinutes,
       questionsPerAttempt: input.questionsPerAttempt,
+      easyCount: input.easyCount,
+      mediumCount: input.mediumCount,
+      hardCount: input.hardCount,
       scheduledDate: input.scheduledDate ? new Date(input.scheduledDate) : (input.scheduledDate === null || input.scheduledDate === "" ? null : undefined),
       shuffleQuestions: input.shuffleQuestions
     }

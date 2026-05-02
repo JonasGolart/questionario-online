@@ -17,6 +17,9 @@ type Questionnaire = {
   description?: string | null;
   durationMinutes: number | null;
   questionsPerAttempt: number | null;
+  easyCount: number | null;
+  mediumCount: number | null;
+  hardCount: number | null;
   scheduledDate: string | null;
   shuffleQuestions: boolean;
   isPublished: boolean;
@@ -139,6 +142,9 @@ export default function QuestionnaireDetails() {
     description: '',
     durationMinutes: 60,
     questionsPerAttempt: null as number | null,
+    easyCount: null as number | null,
+    mediumCount: null as number | null,
+    hardCount: null as number | null,
     scheduledDate: '',
     shuffleQuestions: false
   });
@@ -156,6 +162,9 @@ export default function QuestionnaireDetails() {
           description: found.description || '',
           durationMinutes: found.durationMinutes || 60,
           questionsPerAttempt: found.questionsPerAttempt,
+          easyCount: found.easyCount,
+          mediumCount: found.mediumCount,
+          hardCount: found.hardCount,
           scheduledDate: found.scheduledDate ? found.scheduledDate.split('T')[0] : '',
           shuffleQuestions: found.shuffleQuestions
         });
@@ -742,10 +751,13 @@ export default function QuestionnaireDetails() {
               <span style={{ margin: '0 0.5rem', color: 'var(--text-secondary)' }}>•</span>
               <span 
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', backgroundColor: 'rgba(59,130,246,0.1)', color: '#2563eb', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }} 
-                title={`O sistema sorteará ${questionnaire.questionsPerAttempt || poolSize} questões dentre as ${poolSize} marcadas para o pool`}
+                title={`O sistema sorteará questões com base na configuração de pool ou distribuição por nível`}
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M16 12l-4-4-4 4"></path></svg>
-                MODO POOL: {questionnaire.questionsPerAttempt || poolSize} de {poolSize} selecionadas
+                { (questionnaire.easyCount || questionnaire.mediumCount || questionnaire.hardCount) 
+                  ? `MODO DISTRIBUIÇÃO: F:${questionnaire.easyCount || 0} M:${questionnaire.mediumCount || 0} D:${questionnaire.hardCount || 0}`
+                  : `MODO POOL: ${questionnaire.questionsPerAttempt || poolSize} de ${poolSize} selecionadas`
+                }
               </span>
             </p>
           </div>
@@ -775,17 +787,73 @@ export default function QuestionnaireDetails() {
               </div>
               <div>
                 <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Duração (minutos)</label>
-                <input className="input-field" type="number" value={metaData.durationMinutes} onChange={e => setMetaData({...metaData, durationMinutes: Number(e.target.value)})} />
+                <input 
+                  className="input-field" 
+                  type="number" 
+                  min={1}
+                  value={metaData.durationMinutes} 
+                  onChange={e => setMetaData({...metaData, durationMinutes: Math.max(1, Number(e.target.value))})} 
+                />
               </div>
               <div>
                 <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Questões p/ Aluno</label>
-                <input className="input-field" type="number" placeholder="Vazio = Todas" value={metaData.questionsPerAttempt || ''} onChange={e => setMetaData({...metaData, questionsPerAttempt: e.target.value ? Number(e.target.value) : null})} />
+                <input 
+                  className="input-field" 
+                  type="number" 
+                  min={0}
+                  placeholder="Vazio = Todas" 
+                  value={metaData.questionsPerAttempt || ''} 
+                  onChange={e => setMetaData({...metaData, questionsPerAttempt: e.target.value ? Math.max(0, Number(e.target.value)) : null})} 
+                />
               </div>
               <div>
                 <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Data Agendada</label>
                 <input className="input-field" type="date" value={metaData.scheduledDate} onChange={e => setMetaData({...metaData, scheduledDate: e.target.value})} />
               </div>
             </div>
+
+            <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#F9F7F2', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <p style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>📊 Distribuição de Nível (Opcional - Substitui o "Total de Questões" acima se preenchido)</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '1rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: '#16a34a', display: 'block', marginBottom: '0.25rem', fontWeight: 600 }}>🟢 Qtd. Fácil</label>
+                  <input 
+                    className="input-field" 
+                    type="number" 
+                    min={0}
+                    placeholder="0" 
+                    value={metaData.easyCount || ''} 
+                    onChange={e => setMetaData({...metaData, easyCount: e.target.value ? Math.max(0, Number(e.target.value)) : null})} 
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: '#ca8a04', display: 'block', marginBottom: '0.25rem', fontWeight: 600 }}>🟡 Qtd. Médio</label>
+                  <input 
+                    className="input-field" 
+                    type="number" 
+                    min={0}
+                    placeholder="0" 
+                    value={metaData.mediumCount || ''} 
+                    onChange={e => setMetaData({...metaData, mediumCount: e.target.value ? Math.max(0, Number(e.target.value)) : null})} 
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: '#dc2626', display: 'block', marginBottom: '0.25rem', fontWeight: 600 }}>🔴 Qtd. Difícil</label>
+                  <input 
+                    className="input-field" 
+                    type="number" 
+                    min={0}
+                    placeholder="0" 
+                    value={metaData.hardCount || ''} 
+                    onChange={e => setMetaData({...metaData, hardCount: e.target.value ? Math.max(0, Number(e.target.value)) : null})} 
+                  />
+                </div>
+              </div>
+              <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.75rem' }}>
+                * Se preenchido, o sistema garantirá que cada aluno receba exatamente essas quantidades de cada nível.
+              </p>
+            </div>
+
             <div>
               <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Instruções (Exibidas na tela de Boas-vindas)</label>
               <textarea className="input-field" rows={3} value={metaData.description} onChange={e => setMetaData({...metaData, description: e.target.value})} style={{ width: '100%', marginBottom: '1rem' }} />
