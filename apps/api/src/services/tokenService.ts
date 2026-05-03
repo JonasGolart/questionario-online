@@ -383,6 +383,27 @@ export async function startTimer(attemptId: string) {
   });
 }
 
+export async function registerTabSwitch(attemptId: string) {
+  const attempt = await prisma.attempt.findUnique({
+    where: { id: attemptId }
+  });
+
+  if (!attempt) {
+    throw new Error("ATTEMPT_NOT_FOUND");
+  }
+
+  if (attempt.finishedAt) {
+    return attempt;
+  }
+
+  return prisma.attempt.update({
+    where: { id: attemptId },
+    data: {
+      tabSwitches: { increment: 1 }
+    }
+  });
+}
+
 async function buildUniqueTestSessionCode() {
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const code = `TESTRUN-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;

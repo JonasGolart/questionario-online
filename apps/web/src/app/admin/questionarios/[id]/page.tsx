@@ -37,7 +37,7 @@ type Questionnaire = {
     position: number;
     includeInPool: boolean;
   }>;
-  tokens: Array<{ id: string; code: string; status: string; boundStudentName: string | null }>;
+  tokens: Array<{ id: string; code: string; status: string; boundStudentName: string | null; attempt?: { tabSwitches: number } | null }>;
 };
 
 type EditableQuestion = {
@@ -73,6 +73,7 @@ type QuestionnaireReport = {
     incorrectCount: number;
     startedAt: string;
     finishedAt: string;
+    tabSwitches: number;
   }>;
   topics: Array<{ name: string; total: number; correct: number; percentage: number }>;
 };
@@ -388,13 +389,14 @@ export default function QuestionnaireDetails() {
       // 2. Aba Alunos (somente se houver dados)
       if (data.students.length > 0) {
         const studentData = [
-          ['Nome do Aluno', 'Nota', '%', 'Acertos', 'Erros', 'Inicio da Prova', 'Fim da Prova'],
+          ['Nome do Aluno', 'Nota', '%', 'Acertos', 'Erros', 'Trocas de Aba', 'Inicio da Prova', 'Fim da Prova'],
           ...data.students.map((s) => [
             s.name,
             s.score,
             `${s.percentage.toFixed(1)}%`,
             s.correctCount,
             s.incorrectCount,
+            s.tabSwitches,
             s.startedAt ? new Date(s.startedAt).toLocaleString('pt-BR') : '-',
             s.finishedAt ? new Date(s.finishedAt).toLocaleString('pt-BR') : '-'
           ])
@@ -473,15 +475,16 @@ export default function QuestionnaireDetails() {
         doc.text('ALUNOS', 14, 16);
         autoTable(doc, {
           startY: 22,
-          head: [['Nome do Aluno', 'Nota', '%', 'Acertos', 'Erros', 'Inicio da Prova', 'Fim da Prova']],
+          head: [['Nome do Aluno', 'Nota', '%', 'Acertos', 'Erros', 'Alertas', 'Inicio', 'Fim']],
           body: data.students.map((s) => [
             s.name,
             String(s.score),
             `${s.percentage.toFixed(1)}%`,
             String(s.correctCount),
             String(s.incorrectCount),
-            s.startedAt ? new Date(s.startedAt).toLocaleString('pt-BR') : '-',
-            s.finishedAt ? new Date(s.finishedAt).toLocaleString('pt-BR') : '-'
+            String(s.tabSwitches),
+            s.startedAt ? new Date(s.startedAt).toLocaleTimeString('pt-BR') : '-',
+            s.finishedAt ? new Date(s.finishedAt).toLocaleTimeString('pt-BR') : '-'
           ]),
           styles: { fontSize: 8 },
           headStyles: { fillColor: [22, 163, 74] }
@@ -1282,6 +1285,9 @@ export default function QuestionnaireDetails() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.25rem', color: '#3b82f6', fontSize: '0.75rem' }}>
                         <span>Token: {t.code}</span>
                         <span>{t.status}</span>
+                        {t.attempt && t.attempt.tabSwitches > 0 && (
+                          <span style={{ color: '#ef4444', fontWeight: 700 }}>⚠️ {t.attempt.tabSwitches} trocas de aba</span>
+                        )}
                       </div>
                     </div>
                   ))}

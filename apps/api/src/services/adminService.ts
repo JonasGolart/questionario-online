@@ -195,7 +195,11 @@ export async function listQuestionnaires(userId: string, role: UserRole) {
       questions: {
         orderBy: { position: "asc" }
       },
-      tokens: true
+      tokens: {
+        include: {
+          attempt: true
+        }
+      }
     },
     orderBy: { createdAt: "desc" }
   });
@@ -732,7 +736,8 @@ export async function getQuestionnaireReport(questionnaireId: string) {
         correctCount,
         incorrectCount: a.answers.length - correctCount,
         startedAt: a.startedAt,
-        finishedAt: a.finishedAt
+        finishedAt: a.finishedAt,
+        tabSwitches: a.tabSwitches
       };
     }),
     topics

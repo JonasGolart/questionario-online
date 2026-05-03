@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { postJson } from '../../../lib/api';
+import { postJson, patchJson } from '../../../lib/api';
 
 type ActiveAttempt = {
   attemptId: string;
@@ -149,6 +149,37 @@ export default function TelaProva() {
 
     return () => clearInterval(timer);
   }, [handleSubmit, timeLeft]);
+
+  // Monitoramento de troca de abas / perda de foco
+  useEffect(() => {
+    if (!attempt) return;
+
+    const handleCheatingAttempt = async () => {
+      try {
+        await patchJson(`/api/v1/student/attempts/${attempt.attemptId}/tab-switch`, {}, attempt.studentToken);
+      } catch (err) {
+        console.error('Erro ao registrar troca de aba:', err);
+      }
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        handleCheatingAttempt();
+      }
+    };
+
+    const onBlur = () => {
+      handleCheatingAttempt();
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('blur', onBlur);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, [attempt]);
 
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);

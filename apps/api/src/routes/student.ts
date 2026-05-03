@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { FastifyInstance } from "fastify";
-import { startAttempt, submitAttempt, startTimer } from "../services/tokenService.js";
+import { startAttempt, submitAttempt, startTimer, registerTabSwitch } from "../services/tokenService.js";
 
 const startSchema = z.object({
   token: z.string().min(4),
@@ -72,6 +72,20 @@ export async function studentRoutes(app: FastifyInstance) {
 
       const result = await startTimer(params.id);
       return reply.send(result);
+    } catch (error) {
+      return mapError(reply, error);
+    }
+  });
+
+  app.patch("/api/v1/student/attempts/:id/tab-switch", async (request, reply) => {
+    try {
+      const params = z.object({ id: z.string().uuid() }).parse(request.params);
+      const decoded = await request.jwtVerify() as { sub: string, role: string };
+      if (decoded.role !== 'student' || decoded.sub !== params.id) {
+        return reply.code(403).send({ error: "FORBIDDEN" });
+      }
+      const result = await registerTabSwitch(params.id);
+      return reply.send({ success: true, count: result.tabSwitches });
     } catch (error) {
       return mapError(reply, error);
     }
