@@ -358,7 +358,8 @@ export async function submitAttempt(payload: StudentSubmitRequest) {
     percentage: reportStats?.percentage ?? (finalTotalPoints === 0 ? 0 : Number(((finalScore / finalTotalPoints) * 100).toFixed(2))),
     feedback: report?.summary ?? buildSummary(finalScore, finalTotalPoints),
     weakTopics: (report?.weakTopics as any[]) ?? [],
-    correctAnswers: finalCorrectionDetails
+    correctAnswers: finalCorrectionDetails,
+    tabSwitches: attempt?.tabSwitches ?? 0
   };
 }
 

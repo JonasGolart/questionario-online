@@ -11,6 +11,7 @@ type ResultData = {
   percentage: number;
   feedback: string;
   weakTopics: Array<{ topic: string; percentage: number }>;
+  tabSwitches: number;
   correctAnswers: Array<{
     questionId: string;
     statement: string;
@@ -130,6 +131,32 @@ export default function ResultadoProva() {
           {result.questionnaireName} • <strong>{result.studentFullName}</strong>
         </p>
       </div>
+
+      {result.tabSwitches > 0 && (
+        <div style={{ 
+          backgroundColor: '#fef2f2', 
+          border: '2px solid #ef4444', 
+          borderRadius: '16px', 
+          padding: '1.5rem', 
+          marginBottom: '3rem', 
+          textAlign: 'center',
+          animation: 'pulse 2s infinite'
+        }}>
+          <style dangerouslySetInnerHTML={{ __html: `
+            @keyframes pulse {
+              0% { transform: scale(1); }
+              50% { transform: scale(1.02); }
+              100% { transform: scale(1); }
+            }
+          `}} />
+          <p style={{ color: '#ef4444', fontWeight: 800, fontSize: '1.25rem', margin: 0 }}>
+            ⚠️ Que coisa feia, abriu outras abas durante a avaliação!
+          </p>
+          <p style={{ color: '#7f1d1d', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+            Detectamos <strong>{result.tabSwitches}</strong> interrupções de foco. Isso foi registrado no seu relatório.
+          </p>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', marginBottom: '3rem' }}>
         <div className="card" style={{ textAlign: 'center', padding: '3rem 2rem' }}>
