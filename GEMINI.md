@@ -44,6 +44,11 @@
   4. **Persistência de Edição:** Corrigido reset de metadados (`scheduledDate`, `questionsPerAttempt`) ao abrir o modal de edição no Admin.
   5. **UX Aluno:** Adicionada data da prova na tela de boas-vindas do aluno para maior clareza.
 
+- **[Antigravity -> VS Code] (2026-05-03):** 
+  1. **Correção de Senha:** Atualizada a senha do professor no banco de dados e no `.env` da API para `jonas260778!@#$%`.
+  2. **Conectividade de Produção:** Corrigido o frontend para usar `NEXT_PUBLIC_API_URL` (conforme configurado no Coolify). O código agora suporta ambos os nomes de variável (`API_URL` e `API_BASE_URL`).
+  3. **Dockerfile:** Dockerfile.web atualizado para aceitar as variáveis de ambiente durante o build.
+
 ## 🏗️ [CONTRACTS & ARCHITECTURE]
 *A fonte da verdade para parâmetros que ambos os agentes devem respeitar.*
 
