@@ -132,7 +132,7 @@ export default function ResultadoProva() {
         </p>
       </div>
 
-      {result.tabSwitches > 0 && (
+      {result.tabSwitches > 0 ? (
         <div style={{ 
           backgroundColor: '#fef2f2', 
           border: '2px solid #ef4444', 
@@ -154,6 +154,22 @@ export default function ResultadoProva() {
           </p>
           <p style={{ color: '#7f1d1d', fontSize: '0.875rem', marginTop: '0.5rem' }}>
             Detectamos <strong>{result.tabSwitches}</strong> interrupções de foco. Isso foi registrado no seu relatório.
+          </p>
+        </div>
+      ) : (
+        <div style={{ 
+          backgroundColor: '#f0fdf4', 
+          border: '2px solid #22c55e', 
+          borderRadius: '16px', 
+          padding: '1.5rem', 
+          marginBottom: '3rem', 
+          textAlign: 'center'
+        }}>
+          <p style={{ color: '#16a34a', fontWeight: 800, fontSize: '1.25rem', margin: 0 }}>
+            🌟 Muito bem, você fez toda a avaliação e não olhou em outra aba.
+          </p>
+          <p style={{ color: '#14532d', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+            Um ponto a mais para você pela sua integridade!
           </p>
         </div>
       )}
