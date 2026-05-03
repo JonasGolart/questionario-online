@@ -198,6 +198,7 @@ export async function submitAttempt(payload: StudentSubmitRequest) {
   let finalTotalPoints = 0;
   let finalCorrectionDetails: any = {};
   let finalAttemptId = payload.attemptId;
+  let finalTabSwitches = 0;
 
   // Iniciar transação para garantir atomicidade e evitar condições de corrida
   // Aumentado o timeout para 30s para evitar erros em servidores sob carga
@@ -316,6 +317,7 @@ export async function submitAttempt(payload: StudentSubmitRequest) {
     finalTotalPoints = totalPoints;
     finalCorrectionDetails = correctionDetails;
     finalAttemptId = attempt.id;
+    finalTabSwitches = attempt.tabSwitches;
 
     await tx.accessToken.update({
       where: { id: attempt.tokenId },
@@ -359,7 +361,7 @@ export async function submitAttempt(payload: StudentSubmitRequest) {
     feedback: report?.summary ?? buildSummary(finalScore, finalTotalPoints),
     weakTopics: (report?.weakTopics as any[]) ?? [],
     correctAnswers: finalCorrectionDetails,
-    tabSwitches: attempt?.tabSwitches ?? 0
+    tabSwitches: finalTabSwitches
   };
 }
 
