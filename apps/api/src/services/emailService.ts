@@ -243,7 +243,7 @@ function buildEmailHtml(data: {
               <table cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="width: 28px; height: 28px; background-color: #3b82f6; border-radius: 50%; text-align: center; color: white; font-weight: 700; font-size: 0.875rem; vertical-align: middle;">1</td>
-                  <td style="padding-left: 0.75rem; color: #475569; font-size: 0.9rem;">Acesse o portal do aluno no endereço fornecido pelo professor</td>
+                  <td style="padding-left: 0.75rem; color: #475569; font-size: 0.9rem;">Acesse pelo link <a href="https://quest.stackfab.com.br" style="color: #3b82f6; font-weight: 600; text-decoration: none;">quest.stackfab.com.br</a></td>
                 </tr>
               </table>
             </td>
