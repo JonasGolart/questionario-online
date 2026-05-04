@@ -49,6 +49,13 @@
   2. **Conectividade de Produção:** Corrigido o frontend para usar `NEXT_PUBLIC_API_URL` (conforme configurado no Coolify). O código agora suporta ambos os nomes de variável (`API_URL` e `API_BASE_URL`). URL de produção atualizada para `https://endquest.stackfab.com.br`.
   3. **Dockerfile:** Dockerfile.web atualizado para aceitar as variáveis de ambiente durante o build.
 
+- **[Antigravity -> VS Code] (2026-05-04):** Sessão de Otimização Responsiva e Estabilidade:
+  1. **Mobile First:** Todo o painel administrativo (Sidebar, Dashboard, Detalhes) e o portal do aluno (Login, Prova, Resultados) agora são 100% responsivos. Sidebar do admin agora é um drawer em mobile.
+  2. **Login Premium:** Admin Login redesenhado com Glassmorphism para consistência visual.
+  3. **Estabilidade de Sessão:** Aumentado tempo do JWT para 2h para evitar erros de desmarcação de questões (401 Unauthorized) durante edições longas.
+  4. **Correção de UX Aluno:** Cabeçalho da prova otimizado para celulares, garantindo que o cronômetro não suma.
+  5. **Gabarito Responsivo:** Página de resultados do aluno agora empilha corretamente no celular.
+
 ## 🏗️ [CONTRACTS & ARCHITECTURE]
 *A fonte da verdade para parâmetros que ambos os agentes devem respeitar.*
 

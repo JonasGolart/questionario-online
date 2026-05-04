@@ -227,79 +227,84 @@ export default function TelaProva() {
   };
 
   return (
-    <div style={{ padding: '1.5rem', maxWidth: '900px', margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ padding: '1rem', maxWidth: '900px', margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Header Fixo/Superior Melhorado */}
       <div style={{ 
-        marginBottom: '2.5rem', 
-        paddingBottom: '1.5rem', 
+        marginBottom: '1.5rem', 
+        paddingBottom: '1rem', 
         borderBottom: '1px solid var(--border)',
         position: 'sticky',
         top: 0,
         backgroundColor: 'var(--bg-main)',
         zIndex: 10,
-        marginTop: '-1.5rem',
-        paddingTop: '1.5rem'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem', alignItems: 'flex-start' }}>
+        marginTop: '-1rem',
+        paddingTop: '1rem'
+      }} className="exam-header">
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', alignItems: 'center', gap: '1rem' }} className="header-top">
           <div style={{ flex: 1 }}>
-            <h2 style={{ color: 'var(--text-primary)', fontSize: '1.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>
+            <h2 style={{ color: 'var(--text-primary)', fontSize: '1.25rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }} className="exam-name">
               {attempt.questionnaire.name}
             </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '0.4rem 0 0 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ padding: '0.2rem 0.6rem', backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)', borderRadius: '4px', fontWeight: 600, fontSize: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+              <span style={{ padding: '0.1rem 0.4rem', backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)', borderRadius: '4px', fontWeight: 600, fontSize: '0.7rem' }}>
                 {attempt.questionnaire.discipline}
               </span>
-              • Questão {currentQuestion + 1} de {attempt.questionnaire.questions.length}
-            </p>
+              <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>• Q{currentQuestion + 1}/{attempt.questionnaire.questions.length}</span>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
             {timeLeft !== null && (
               <div style={{ 
-                padding: '0.6rem 1.25rem', 
+                padding: '0.4rem 0.8rem', 
                 backgroundColor: timeLeft < 300 ? '#fef2f2' : '#eff6ff',
-                borderRadius: '12px',
+                borderRadius: '10px',
                 border: '1px solid',
                 borderColor: timeLeft < 300 ? '#fecaca' : '#bfdbfe',
                 textAlign: 'center',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                minWidth: '120px'
+                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                minWidth: '90px'
               }}>
                 <span style={{ 
                   display: 'block', 
                   color: timeLeft < 300 ? '#ef4444' : '#2563eb', 
                   fontWeight: 800,
-                  fontSize: '1.25rem',
+                  fontSize: '1.1rem',
                   fontFamily: 'monospace',
                   lineHeight: 1
                 }}>
                   {formatTime(timeLeft)}
                 </span>
-                <span style={{ color: timeLeft < 300 ? '#991b1b' : '#1e40af', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Restante
+                <span style={{ color: timeLeft < 300 ? '#991b1b' : '#1e40af', fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                  Tempo
                 </span>
               </div>
             )}
-
-            <div style={{ textAlign: 'right', minWidth: '80px' }}>
-              <span style={{ 
-                display: 'block', 
-                color: 'var(--text-primary)', 
-                fontWeight: 800,
-                fontSize: '1.25rem',
-                lineHeight: 1
-              }}>
-                {answeredCount}/{attempt.questionnaire.questions.length}
-              </span>
-              <span style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase' }}>Respondidas</span>
-            </div>
           </div>
         </div>
         
-        <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--border)', borderRadius: '4px', overflow: 'hidden' }}>
-          <div style={{ width: `${progress}%`, height: '100%', backgroundColor: 'var(--primary)', transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }} />
+        <div style={{ width: '100%', height: '6px', backgroundColor: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
+          <div style={{ width: `${progress}%`, height: '100%', backgroundColor: 'var(--primary)', transition: 'width 0.4s ease' }} />
         </div>
       </div>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media (max-width: 640px) {
+          .exam-header {
+            padding-bottom: 0.75rem !important;
+          }
+          .exam-name {
+            font-size: 1.1rem !important;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+          }
+          .header-top {
+            gap: 0.5rem !important;
+          }
+        }
+      `}} />
 
       {!showConfirm ? (
         <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>

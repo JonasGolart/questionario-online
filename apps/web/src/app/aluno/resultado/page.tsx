@@ -255,7 +255,7 @@ export default function ResultadoProva() {
               </div>
               <p style={{ color: 'var(--text-primary)', fontWeight: 600, marginBottom: '1.5rem', lineHeight: 1.5 }}>{item.statement}</p>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="responsive-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div style={{ padding: '1rem', borderRadius: '12px', background: 'rgba(0,0,0,0.02)', border: '1px solid var(--border)' }}>
                   <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748b', fontWeight: 700, marginBottom: '0.25rem' }}>SUA RESPOSTA</span>
                   <span style={{ color: item.isCorrect ? '#16a34a' : '#ef4444', fontWeight: 700 }}>{item.selectedAnswer || '(Em branco)'}</span>

@@ -48,9 +48,9 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
         <h1 style={{ margin: 0, color: 'var(--text-primary)' }}>Dashboard</h1>
-        <Link href="/admin/questionarios/novo" className="btn-primary" style={{ textDecoration: 'none' }}>
+        <Link href="/admin/questionarios/novo" className="btn-primary" style={{ textDecoration: 'none', width: 'auto' }}>
           + Novo Questionário
         </Link>
       </div>
@@ -85,15 +85,15 @@ export default function AdminDashboard() {
       ) : (
         <div style={{ display: 'grid', gap: '1rem' }}>
           {items.map((item) => (
-            <div key={item.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div key={item.id} className="card questionnaire-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
               <div>
-                <h3 style={{ margin: '0 0 0.25rem 0' }}>{item.name}</h3>
+                <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.1rem' }}>{item.name}</h3>
                 <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
                   {item.discipline} • {item.category} • {item.questions.length} questões • {item.tokens.length} tokens {item.durationMinutes && `• ${item.durationMinutes} min`}
                 </p>
                 {item.scheduledDate && (
                   <p style={{ margin: '0.25rem 0 0 0', color: 'var(--primary)', fontSize: '0.8125rem', fontWeight: 600 }}>
-                    📅 Data da Prova: {item.scheduledDate.split('T')[0].split('-').reverse().join('/')}
+                    📅 Prova: {item.scheduledDate.split('T')[0].split('-').reverse().join('/')}
                   </p>
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
@@ -110,8 +110,8 @@ export default function AdminDashboard() {
                   </span>
                 </div>
               </div>
-              <div>
-                <Link href={`/admin/questionarios/${item.id}`} className="btn-primary" style={{ textDecoration: 'none', backgroundColor: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}>
+              <div className="card-actions">
+                <Link href={`/admin/questionarios/${item.id}`} className="btn-primary" style={{ textDecoration: 'none', backgroundColor: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)', whiteSpace: 'nowrap' }}>
                   Gerenciar
                 </Link>
               </div>
@@ -119,6 +119,26 @@ export default function AdminDashboard() {
           ))}
         </div>
       )}
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media (max-width: 640px) {
+          .dashboard-header {
+            flex-direction: column;
+            align-items: flex-start !important;
+          }
+          .questionnaire-card {
+            flex-direction: column;
+            align-items: flex-start !important;
+          }
+          .card-actions {
+            width: 100%;
+          }
+          .card-actions a {
+            display: block;
+            text-align: center;
+          }
+        }
+      `}} />
     </AdminLayout>
   );
 }

@@ -599,10 +599,16 @@ export default function QuestionnaireDetails() {
     try {
       await patchJson(`/api/v1/admin/questions/${qId}`, { 
         includeInPool: !currentStatus,
-        type: type // Necessário para validação do backend
+        type: type 
       }, token);
       await loadQuestionnaire(token);
-    } catch {
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Erro ao carregar.';
+      if (msg === 'UNAUTHORIZED' || msg.includes('UNAUTHORIZED')) {
+        window.localStorage.removeItem('qo_admin_token');
+        router.replace('/admin/login');
+        return;
+      }
       setStatus('Erro ao alterar status no pool.');
     }
   }
@@ -726,16 +732,16 @@ export default function QuestionnaireDetails() {
   return (
     <AdminLayout>
       <div style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="details-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
           <div>
-            <h1 style={{ margin: 0, color: 'var(--text-primary)' }}>{questionnaire.name}</h1>
-            <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h1 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.75rem' }}>{questionnaire.name}</h1>
+            <div className="metadata-row" style={{ color: 'var(--text-secondary)', marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.5rem' }}>
               <span>{questionnaire.discipline}</span>
-              <span>•</span>
+              <span className="hide-mobile">•</span>
               <span>{questionnaire.category}</span>
               {questionnaire.durationMinutes && (
                 <>
-                  <span>•</span>
+                  <span className="hide-mobile">•</span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                     {questionnaire.durationMinutes} min
@@ -744,32 +750,33 @@ export default function QuestionnaireDetails() {
               )}
               {questionnaire.scheduledDate && (
                 <>
-                  <span>•</span>
+                  <span className="hide-mobile">•</span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                     {questionnaire.scheduledDate.split('T')[0].split('-').reverse().join('/')}
                   </span>
                 </>
               )}
-              <span style={{ margin: '0 0.5rem', color: 'var(--text-secondary)' }}>•</span>
+            </div>
+            <div style={{ marginTop: '0.75rem' }}>
               <span 
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', backgroundColor: 'rgba(59,130,246,0.1)', color: '#2563eb', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }} 
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', backgroundColor: 'rgba(59,130,246,0.1)', color: '#2563eb', padding: '0.25rem 0.6rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }} 
                 title={`O sistema sorteará questões com base na configuração de pool ou distribuição por nível`}
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M16 12l-4-4-4 4"></path></svg>
                 { (questionnaire.easyCount || questionnaire.mediumCount || questionnaire.hardCount) 
-                  ? `MODO DISTRIBUIÇÃO: F:${questionnaire.easyCount || 0} M:${questionnaire.mediumCount || 0} D:${questionnaire.hardCount || 0}`
-                  : `MODO POOL: ${questionnaire.questionsPerAttempt || poolSize} de ${poolSize} selecionadas`
+                  ? `DISTRIBUIÇÃO: F:${questionnaire.easyCount || 0} M:${questionnaire.mediumCount || 0} D:${questionnaire.hardCount || 0}`
+                  : `POOL: ${questionnaire.questionsPerAttempt || poolSize} de ${poolSize} questões`
                 }
               </span>
-            </p>
+            </div>
           </div>
           <button 
             onClick={() => setIsEditingMetadata(!isEditingMetadata)} 
             className="btn-primary" 
-            style={{ backgroundColor: 'transparent', border: '1px solid var(--primary)', color: 'var(--primary)' }}
+            style={{ backgroundColor: 'transparent', border: '1px solid var(--primary)', color: 'var(--primary)', width: 'auto' }}
           >
-            {isEditingMetadata ? 'Cancelar Edição' : 'Editar Informações'}
+            {isEditingMetadata ? 'Cancelar' : 'Editar'}
           </button>
         </div>
 
@@ -816,10 +823,10 @@ export default function QuestionnaireDetails() {
             </div>
 
             <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#F9F7F2', borderRadius: '8px', border: '1px solid var(--border)' }}>
-              <p style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>📊 Distribuição de Nível (Opcional - Substitui o "Total de Questões" acima se preenchido)</p>
+              <p style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>📊 Distribuição de Nível (Opcional)</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '1rem' }}>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#16a34a', display: 'block', marginBottom: '0.25rem', fontWeight: 600 }}>🟢 Qtd. Fácil</label>
+                  <label style={{ fontSize: '0.75rem', color: '#16a34a', display: 'block', marginBottom: '0.25rem', fontWeight: 600 }}>🟢 Fácil</label>
                   <input 
                     className="input-field" 
                     type="number" 
@@ -830,7 +837,7 @@ export default function QuestionnaireDetails() {
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#ca8a04', display: 'block', marginBottom: '0.25rem', fontWeight: 600 }}>🟡 Qtd. Médio</label>
+                  <label style={{ fontSize: '0.75rem', color: '#ca8a04', display: 'block', marginBottom: '0.25rem', fontWeight: 600 }}>🟡 Médio</label>
                   <input 
                     className="input-field" 
                     type="number" 
@@ -841,7 +848,7 @@ export default function QuestionnaireDetails() {
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#dc2626', display: 'block', marginBottom: '0.25rem', fontWeight: 600 }}>🔴 Qtd. Difícil</label>
+                  <label style={{ fontSize: '0.75rem', color: '#dc2626', display: 'block', marginBottom: '0.25rem', fontWeight: 600 }}>🔴 Difícil</label>
                   <input 
                     className="input-field" 
                     type="number" 
@@ -852,13 +859,10 @@ export default function QuestionnaireDetails() {
                   />
                 </div>
               </div>
-              <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.75rem' }}>
-                * Se preenchido, o sistema garantirá que cada aluno receba exatamente essas quantidades de cada nível.
-              </p>
             </div>
 
             <div>
-              <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Instruções (Exibidas na tela de Boas-vindas)</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Instruções (Tela de Boas-vindas)</label>
               <textarea className="input-field" rows={3} value={metaData.description} onChange={e => setMetaData({...metaData, description: e.target.value})} style={{ width: '100%', marginBottom: '1rem' }} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', padding: '1rem', backgroundColor: 'rgba(59, 130, 246, 0.05)', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
@@ -885,7 +889,7 @@ export default function QuestionnaireDetails() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '1.5rem', alignItems: 'start' }}>
+      <div className="main-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '1.5rem', alignItems: 'start' }}>
         {/* Left Column: Questions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
@@ -897,17 +901,17 @@ export default function QuestionnaireDetails() {
               <div style={{ marginBottom: '1.5rem' }}>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.5rem', textTransform: 'uppercase' }}>Importar Questões</p>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button onClick={() => setImportMode('pdf')} className="btn-primary" style={{ backgroundColor: '#ef4444', flex: 1 }}>+ Importar PDF</button>
-                  <button onClick={() => { setImportMode('json'); if (!jsonText.trim()) setJsonText(JSON_IMPORT_TEMPLATE); }} className="btn-primary" style={{ backgroundColor: '#8b5cf6', flex: 1 }}>+ Importar JSON</button>
+                  <button onClick={() => setImportMode('pdf')} className="btn-primary" style={{ backgroundColor: '#ef4444', flex: 1, padding: '0.5rem' }}>PDF</button>
+                  <button onClick={() => { setImportMode('json'); if (!jsonText.trim()) setJsonText(JSON_IMPORT_TEMPLATE); }} className="btn-primary" style={{ backgroundColor: '#8b5cf6', flex: 1, padding: '0.5rem' }}>JSON</button>
                 </div>
               </div>
 
               {/* Reports Section */}
               <div>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.5rem', textTransform: 'uppercase' }}>Gerar Relatórios</p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.5rem', textTransform: 'uppercase' }}>Relatórios</p>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button onClick={handleExportExcel} className="btn-primary" style={{ backgroundColor: '#22c55e', flex: 1 }}>📊 Excel</button>
-                  <button onClick={handleExportPdf} className="btn-primary" style={{ backgroundColor: '#0ea5e9', flex: 1 }}>📄 PDF</button>
+                  <button onClick={handleExportExcel} className="btn-primary" style={{ backgroundColor: '#22c55e', flex: 1, padding: '0.5rem' }}>Excel</button>
+                  <button onClick={handleExportPdf} className="btn-primary" style={{ backgroundColor: '#0ea5e9', flex: 1, padding: '0.5rem' }}>PDF</button>
                 </div>
               </div>
             </div>
@@ -1115,7 +1119,7 @@ export default function QuestionnaireDetails() {
                     </div>
                   )}
                   
-                  <div style={{ display: 'flex', gap: '1rem', color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1rem' }}>
+                  <div className="question-meta" style={{ display: 'flex', gap: '1rem', color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1rem' }}>
                     {q.type === 'ESSAY' ? (
                       <span>📝 <strong>Discursiva: {q.correctAnswers?.join(', ') || 'N/A'}</strong></span>
                     ) : (

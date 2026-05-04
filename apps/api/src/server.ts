@@ -33,7 +33,8 @@ await app.register(rateLimit, {
 app.decorate("authenticate", async (request, reply) => {
   try {
     await request.jwtVerify();
-  } catch {
+  } catch (err) {
+    console.error("JWT Auth Failed:", err);
     return reply.code(401).send({ error: "UNAUTHORIZED" });
   }
 });
