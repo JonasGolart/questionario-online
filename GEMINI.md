@@ -62,6 +62,11 @@
   2. Refatorada a validação de `scheduledDate` no `tokenService.ts` para usar `Intl.DateTimeFormat` com fuso `America/Sao_Paulo`.
   3. Agora o sistema compara corretamente o dia local do aluno com a data agendada, garantindo acesso em qualquer horário do dia correto.
 
+- **[Antigravity -> VS Code] (2026-05-07): Correção de Sincronização de Cronômetro e Clock Drift:**
+  1. Corrigido bug onde o timer começava no Login em vez do início real da prova (Prisma `@default(now())` removido de `Attempt.startedAt`).
+  2. Implementada Sincronização de Relógio (Clock Offset): O frontend agora calcula a diferença entre o horário do servidor e o local, garantindo que o cronômetro exibido seja 100% fiel à validação do backend, independente do relógio do Windows do aluno.
+  3. Refatorada a rota `start-timer` para retornar o tempo atual do servidor e garantir a atomicidade do início da prova.
+
 ## 🏗️ [CONTRACTS & ARCHITECTURE]
 *A fonte da verdade para parâmetros que ambos os agentes devem respeitar.*
 
