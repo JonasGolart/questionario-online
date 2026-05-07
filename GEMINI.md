@@ -55,6 +55,12 @@
   3. **Estabilidade de Sessão:** Aumentado tempo do JWT para 2h para evitar erros de desmarcação de questões (401 Unauthorized) durante edições longas.
   4. **Correção de UX Aluno:** Cabeçalho da prova otimizado para celulares, garantindo que o cronômetro não suma.
   5. **Gabarito Responsivo:** Página de resultados do aluno agora empilha corretamente no celular.
+  6. **Template de E-mail:** Atualizado o Item 1 das instruções no e-mail do aluno para apontar diretamente para `quest.stackfab.com.br`.
+
+- **[Antigravity -> VS Code] (2026-05-06): Correção Crítica de Fuso Horário (403 Forbidden):**
+  1. Identificado erro onde alunos eram bloqueados à noite (após 21h BRT) porque o servidor (UTC) já considerava o dia seguinte.
+  2. Refatorada a validação de `scheduledDate` no `tokenService.ts` para usar `Intl.DateTimeFormat` com fuso `America/Sao_Paulo`.
+  3. Agora o sistema compara corretamente o dia local do aluno com a data agendada, garantindo acesso em qualquer horário do dia correto.
 
 ## 🏗️ [CONTRACTS & ARCHITECTURE]
 *A fonte da verdade para parâmetros que ambos os agentes devem respeitar.*

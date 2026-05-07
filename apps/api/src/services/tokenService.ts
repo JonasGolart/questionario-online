@@ -63,11 +63,31 @@ export async function startAttempt(payloadOrApp: StudentStartRequest | FastifyIn
     if (token.questionnaire.scheduledDate) {
       const scheduled = new Date(token.questionnaire.scheduledDate);
       const now = new Date();
-      // Comparar apenas a data (ignorando horário)
-      const isSameDay = scheduled.getUTCFullYear() === now.getUTCFullYear() &&
-                        scheduled.getUTCMonth() === now.getUTCMonth() &&
-                        scheduled.getUTCDate() === now.getUTCDate();
       
+      // Get current date components in Brazil Timezone
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+      
+      const parts = formatter.formatToParts(now);
+      const nowYear = parseInt(parts.find(p => p.type === 'year')?.value || '0');
+      const nowMonth = parseInt(parts.find(p => p.type === 'month')?.value || '0');
+      const nowDate = parseInt(parts.find(p => p.type === 'day')?.value || '0');
+
+      // Scheduled is already stored as UTC 00:00 for that day
+      const scheduledYear = scheduled.getUTCFullYear();
+      const scheduledMonth = scheduled.getUTCMonth() + 1;
+      const scheduledDate = scheduled.getUTCDate();
+      
+      const isSameDay = scheduledYear === nowYear &&
+                        scheduledMonth === nowMonth &&
+                        scheduledDate === nowDate;
+      
+      console.log(`[DEBUG] Validando data: Agendada=[${scheduledYear}-${scheduledMonth}-${scheduledDate}], Agora (BR)=[${nowYear}-${nowMonth}-${nowDate}]`);
+
       if (!isSameDay) {
         throw new Error("NOT_SCHEDULED_FOR_TODAY");
       }
