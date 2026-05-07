@@ -7,6 +7,7 @@ import { postJson, patchJson } from '../../../lib/api';
 type ActiveAttempt = {
   attemptId: string;
   startedAt: string;
+  serverTime?: string;
   studentFullName: string;
   studentToken: string;
   questionnaire: {
@@ -75,20 +76,31 @@ export default function TelaProva() {
       
       setAttempt(parsed);
       
-      // Inicializar timer persistente
+      // Inicializar timer persistente com compensação de relógio (Server-side drift protection)
       const duration = parsed.questionnaire.durationMinutes;
       const startedAt = parsed.startedAt;
+      const serverTimeStr = parsed.serverTime;
 
-      if (duration && duration > 0) {
-        const start = startedAt ? new Date(startedAt).getTime() : Date.now();
+      if (duration && duration > 0 && startedAt) {
+        const start = new Date(startedAt).getTime();
         const durationMs = duration * 60 * 1000;
-        const now = Date.now();
-        const remaining = Math.max(0, Math.floor((start + durationMs - now) / 1000));
         
-        console.log('Timer calculado:', { start, durationMs, now, remaining });
+        // Calcular offset se tivermos o tempo do servidor
+        let clockOffset = 0;
+        if (serverTimeStr) {
+          const serverTime = new Date(serverTimeStr).getTime();
+          clockOffset = serverTime - Date.now();
+          console.log(`[DEBUG] Clock Offset detectado: ${clockOffset}ms`);
+        }
+
+        const nowAdjusted = Date.now() + clockOffset;
+        const remaining = Math.max(0, Math.floor((start + durationMs - nowAdjusted) / 1000));
+        
+        console.log('Timer calculado com offset:', { start, durationMs, nowAdjusted, remaining });
         setTimeLeft(remaining);
       } else {
-        console.warn('Prova sem duração definida ou duração é zero.');
+        console.warn('Prova sem duração definida ou não iniciada no servidor.');
+        if (!startedAt) setTimeLeft(null);
       }
     } catch (err) {
       console.error('Erro ao processar tentativa:', err);

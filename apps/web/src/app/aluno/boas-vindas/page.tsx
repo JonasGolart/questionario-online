@@ -7,6 +7,7 @@ import { postJson } from '../../../lib/api';
 type ActiveAttempt = {
   attemptId: string;
   startedAt: string;
+  serverTime?: string;
   studentFullName: string;
   studentToken: string;
   questionnaire: {
@@ -47,14 +48,14 @@ export default function BoasVindas() {
 
     try {
       // Sincronizar início do timer no servidor
-      const updated = await postJson<{ startedAt: string }>(
+      const updated = await postJson<{ startedAt: string, serverTime: string }>(
         `/api/v1/student/attempts/${attempt.attemptId}/start-timer`,
         {},
         attempt.studentToken
       );
 
-      // Atualizar localStorage com o novo startedAt
-      const newAttempt = { ...attempt, startedAt: updated.startedAt };
+      // Atualizar localStorage com o novo startedAt e serverTime
+      const newAttempt = { ...attempt, startedAt: updated.startedAt, serverTime: updated.serverTime };
       window.localStorage.setItem('qo_active_attempt', JSON.stringify(newAttempt));
 
       router.push('/aluno/prova');

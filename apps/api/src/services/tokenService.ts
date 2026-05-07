@@ -192,6 +192,7 @@ export async function startAttempt(payloadOrApp: StudentStartRequest | FastifyIn
     attemptId: attempt.id,
     studentToken,
     startedAt: attempt.startedAt,
+    serverTime: new Date().toISOString(),
     questionnaire: {
       id: token.questionnaire.id,
       name: token.questionnaire.name,
@@ -245,6 +246,9 @@ export async function submitAttempt(payload: StudentSubmitRequest) {
 
   // Validação de tempo (Time-limit Protection)
   if (attempt.questionnaire.durationMinutes) {
+    if (!attempt.startedAt) {
+      throw new Error("EXAM_NOT_STARTED");
+    }
     const now = new Date();
     const startedAt = new Date(attempt.startedAt);
     const diffInMinutes = (now.getTime() - startedAt.getTime()) / (1000 * 60);
@@ -395,15 +399,17 @@ export async function startTimer(attemptId: string) {
   }
 
   if (attempt.startedAt) {
-    return attempt;
+    return { ...attempt, serverTime: new Date().toISOString() };
   }
   
-  return prisma.attempt.update({
+  const updated = await prisma.attempt.update({
     where: { id: attemptId },
     data: {
       startedAt: new Date()
     }
   });
+
+  return { ...updated, serverTime: new Date().toISOString() };
 }
 
 export async function registerTabSwitch(attemptId: string) {

@@ -112,7 +112,7 @@ model Attempt {
   tokenId          String         @unique @db.Uuid
   studentFullName  String
   selectedQuestionIds String[] @default([])
-  startedAt        DateTime       @default(now())
+  startedAt        DateTime?
   finishedAt       DateTime?
   score            Float?
   percentage       Float?

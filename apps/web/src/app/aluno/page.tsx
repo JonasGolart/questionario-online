@@ -8,6 +8,7 @@ type StartResponse = {
   attemptId: string;
   studentToken: string;
   startedAt: string;
+  serverTime: string;
   questionnaire: {
     id: string;
     name: string;
@@ -51,6 +52,7 @@ export default function AlunoEntrada() {
           attemptId: response.attemptId,
           studentToken: response.studentToken,
           startedAt: response.startedAt,
+          serverTime: response.serverTime,
           studentFullName: fullName.trim(),
           questionnaire: response.questionnaire
         })
