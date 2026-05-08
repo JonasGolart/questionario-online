@@ -93,6 +93,7 @@ model AccessToken {
   issuerId         String         @db.Uuid
   status           TokenStatus    @default(ACTIVE)
   boundStudentName String?
+  sentToEmail      String?
   expiresAt        DateTime
   maxUses          Int            @default(1)
   currentUses      Int            @default(0)
@@ -103,7 +104,7 @@ model AccessToken {
   issuer           User           @relation("TokenIssuer", fields: [issuerId], references: [id], onDelete: Restrict)
   attempt          Attempt?
 
-  @@index([questionnaireId, status])
+  @@index([questionnaireId, status, sentToEmail])
 }
 
 model Attempt {

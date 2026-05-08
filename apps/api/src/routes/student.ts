@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { FastifyInstance } from "fastify";
-import { startAttempt, submitAttempt, startTimer, registerTabSwitch } from "../services/tokenService.js";
+import { startAttempt, submitAttempt, startTimer, registerTabSwitch, savePartialAnswer } from "../services/tokenService.js";
 
 const startSchema = z.object({
   token: z.string().min(4),
@@ -86,6 +86,32 @@ export async function studentRoutes(app: FastifyInstance) {
       }
       const result = await registerTabSwitch(params.id);
       return reply.send({ success: true, count: result.tabSwitches });
+    } catch (error) {
+      return mapError(reply, error);
+    }
+  });
+  
+  app.post("/api/v1/student/save-answer", async (request, reply) => {
+    try {
+      const schema = z.object({
+        attemptId: z.string().uuid(),
+        questionId: z.string().uuid(),
+        answer: z.string().max(5000)
+      });
+      const payload = schema.parse(request.body);
+
+      // Validação JWT
+      try {
+        const decoded = await request.jwtVerify() as { sub: string, role: string };
+        if (decoded.role !== 'student' || decoded.sub !== payload.attemptId) {
+          return reply.code(403).send({ error: "FORBIDDEN" });
+        }
+      } catch {
+        return reply.code(401).send({ error: "UNAUTHORIZED" });
+      }
+
+      const result = await savePartialAnswer(payload.attemptId, payload.questionId, payload.answer);
+      return reply.send({ success: true, id: result.id });
     } catch (error) {
       return mapError(reply, error);
     }

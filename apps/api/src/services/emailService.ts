@@ -33,6 +33,7 @@ export async function sendTokensByEmail(input: SendTokensInput) {
         where: {
           status: "ACTIVE",
           boundStudentName: null,
+          sentToEmail: null,
         },
         orderBy: { createdAt: "asc" },
       },
@@ -94,6 +95,11 @@ export async function sendTokensByEmail(input: SendTokensInput) {
           duration: durationInfo,
           description: questionnaire.description || "",
         }),
+      });
+
+      await prisma.accessToken.update({
+        where: { id: tokenRecord.id },
+        data: { sentToEmail: email }
       });
 
       results.push({ email, token: tokenRecord.code, status: "sent" });

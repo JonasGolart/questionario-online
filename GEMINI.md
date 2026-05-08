@@ -66,6 +66,11 @@
   1. Corrigido bug onde o timer começava no Login em vez do início real da prova (Prisma `@default(now())` removido de `Attempt.startedAt`).
   2. Implementada Sincronização de Relógio (Clock Offset): O frontend agora calcula a diferença entre o horário do servidor e o local, garantindo que o cronômetro exibido seja 100% fiel à validação do backend, independente do relógio do Windows do aluno.
   3. Refatorada a rota `start-timer` para retornar o tempo atual do servidor e garantir a atomicidade do início da prova.
+- **[Antigravity -> VS Code] (2026-05-08): Implementação de Estabilidade e Persistência:**
+  1. **Salvamento Automático (Persistência):** Implementada rota `POST /api/v1/student/save-answer` e lógica de `upsert` no backend. Frontend agora salva respostas automaticamente a cada mudança (debounce de 1s).
+  2. **Retomada de Prova:** Corrigido bug que impedia o aluno de retomar uma prova em aberto. Agora o sistema identifica tentativas não finalizadas, recupera as questões na ordem original e restaura as respostas já salvas.
+  3. **Timer de Alta Precisão:** Refatorado o cronômetro do aluno para ser baseado em tempo absoluto (`startedAt + duration`), tornando-o imune a suspensões de aba ou lentidão do `setInterval`. Mantida a proteção de `Clock Drift` (Offset servidor/local).
+  4. **Unificação de Shuffle:** Removido o embaralhamento redundante no frontend. Agora apenas o backend decide a ordem (e a mantém consistente na retomada).
 
 ## 🏗️ [CONTRACTS & ARCHITECTURE]
 *A fonte da verdade para parâmetros que ambos os agentes devem respeitar.*
@@ -99,6 +104,11 @@
 - [x] (VS Code) Correção do contrato de atualização de questões por tipo em `PATCH /api/v1/admin/questions/:id`.
 - [x] (VS Code) Correção da suíte de teste crítico com compatibilidade `findFirst` no mock Prisma.
 
+- [x] (Antigravity) Implementar **Salvamento Automático de Progresso** (Persistência de respostas parciais).
+- [x] (Antigravity) Unificar Shuffle de questões apenas no Backend.
+- [x] (Antigravity) Refatorar Timer para cálculo de tempo real absoluto.
+- [x] (Antigravity) Suporte a retomada de prova (Resumption) com restauração de estado.
+
 ## ⏳ [PENDING TASKS (Backlog)]
 - [ ] (Ambos) Avaliar deploy para homologação na VPS (Coolify).
-- [ ] (Ambos) Configurar RESEND_API_KEY real no Coolify para ativar envio de tokens por e-mail (local em apps/api/.env já confirmado).
+- [ ] (Ambos) Configurar RESEND_API_KEY real no Coolify para ativar envio de tokens por e-mail.

@@ -7,9 +7,9 @@ import { postJson, patchJson } from '../../../lib/api';
 type ActiveAttempt = {
   attemptId: string;
   startedAt: string;
-  serverTime?: string;
   studentFullName: string;
   studentToken: string;
+  savedAnswers?: Array<{ questionId: string; value: string }>;
   questionnaire: {
     id: string;
     name: string;
@@ -67,14 +67,18 @@ export default function TelaProva() {
       const parsed = JSON.parse(raw) as ActiveAttempt;
       console.log('Dados da tentativa:', parsed);
       
-      // Embaralhar questões se configurado
-      if (parsed.questionnaire.shuffleQuestions) {
-        const shuffledQuestions = [...parsed.questionnaire.questions].sort(() => Math.random() - 0.5);
-        parsed.questionnaire.questions = shuffledQuestions;
-        window.localStorage.setItem('qo_active_attempt', JSON.stringify(parsed));
-      }
-      
       setAttempt(parsed);
+      
+      // Carregar respostas salvas para retomada
+      if (parsed.savedAnswers) {
+        const initialAnswers: Record<string, string> = {};
+        parsed.savedAnswers.forEach(a => {
+          initialAnswers[a.questionId] = a.value;
+        });
+        setAnswers(initialAnswers);
+        setLastSavedAnswers(initialAnswers);
+        console.log('[DEBUG] Respostas recuperadas do servidor:', Object.keys(initialAnswers).length);
+      }
       
       // Inicializar timer persistente com compensação de relógio (Server-side drift protection)
       const duration = parsed.questionnaire.durationMinutes;
@@ -156,11 +160,61 @@ export default function TelaProva() {
     }
 
     const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev !== null ? prev - 1 : null));
+      if (!attempt || !attempt.startedAt || !attempt.questionnaire.durationMinutes) return;
+      
+      const start = new Date(attempt.startedAt).getTime();
+      const durationMs = attempt.questionnaire.durationMinutes * 60 * 1000;
+      
+      // Obter offset se disponível
+      let clockOffset = 0;
+      if (attempt.serverTime) {
+        clockOffset = new Date(attempt.serverTime).getTime() - Date.now();
+      }
+
+      const nowAdjusted = Date.now() + clockOffset;
+      const remaining = Math.max(0, Math.floor((start + durationMs - nowAdjusted) / 1000));
+      
+      setTimeLeft(remaining);
+      
+      if (remaining === 0) {
+        clearInterval(timer);
+        handleSubmit(); // Auto-submit
+      }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [handleSubmit, timeLeft]);
+  }, [handleSubmit, attempt, timeLeft]);
+
+  // Salvamento Automático (Persistência)
+  const [lastSavedAnswers, setLastSavedAnswers] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!attempt) return;
+
+    const saveChanges = async () => {
+      // Identificar o que mudou
+      const changedQuestionId = Object.keys(answers).find(id => answers[id] !== lastSavedAnswers[id]);
+      
+      if (changedQuestionId) {
+        const answerValue = answers[changedQuestionId];
+        try {
+          await postJson('/api/v1/student/save-answer', {
+            attemptId: attempt.attemptId,
+            questionId: changedQuestionId,
+            answer: answerValue
+          }, attempt.studentToken);
+          
+          setLastSavedAnswers(prev => ({ ...prev, [changedQuestionId]: answerValue }));
+          console.log(`[AUTO-SAVE] Resposta salva para questão ${changedQuestionId}`);
+        } catch (err) {
+          console.error('[AUTO-SAVE] Erro ao salvar resposta:', err);
+        }
+      }
+    };
+
+    const timeout = setTimeout(saveChanges, 1000); // Debounce de 1s para não sobrecarregar
+    return () => clearTimeout(timeout);
+  }, [answers, attempt, lastSavedAnswers]);
 
   // Monitoramento de troca de abas / perda de foco
   useEffect(() => {

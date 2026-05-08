@@ -101,7 +101,7 @@ export async function startAttempt(payloadOrApp: StudentStartRequest | FastifyIn
       throw new Error("TOKEN_EXPIRED");
     }
 
-    if (token.currentUses >= token.maxUses || token.attempt) {
+    if (token.currentUses >= token.maxUses || (token.attempt && token.attempt.finishedAt)) {
       await prisma.accessToken.update({
         where: { id: token.id },
         data: { status: TokenStatus.USED }
@@ -112,6 +112,62 @@ export async function startAttempt(payloadOrApp: StudentStartRequest | FastifyIn
     if (token.boundStudentName && token.boundStudentName !== studentFullName) {
       throw new Error("TOKEN_BOUND_TO_OTHER_STUDENT");
     }
+  }
+
+  // --- LOGICA DE RETOMADA DE PROVA ---
+  if (token.attempt && !token.attempt.finishedAt) {
+    console.log(`[DEBUG] Retomando prova existente para o aluno: ${studentFullName}`);
+    
+    // Buscar as questões na ordem salva
+    const questions = await prisma.question.findMany({
+      where: { id: { in: token.attempt.selectedQuestionIds } }
+    });
+    
+    // Reordenar conforme o array original
+    const orderedQuestions = token.attempt.selectedQuestionIds
+      .map(id => questions.find(q => q.id === id))
+      .filter((q): q is typeof questions[0] => !!q);
+
+    // Buscar respostas já salvas
+    const savedAnswers = await prisma.answer.findMany({
+      where: { attemptId: token.attempt.id }
+    });
+
+    // Gerar token JWT se necessário
+    let studentToken: string | null = null;
+    if (app) {
+      studentToken = await app.jwt.sign({ 
+        sub: token.attempt.id, 
+        role: 'student',
+        questionnaireId: token.questionnaire.id 
+      }, { expiresIn: `${(token.questionnaire.durationMinutes || 60) + 30}m` });
+    }
+
+    return {
+      attemptId: token.attempt.id,
+      studentToken,
+      startedAt: token.attempt.startedAt,
+      studentFullName: token.attempt.studentFullName,
+      serverTime: new Date().toISOString(),
+      savedAnswers: savedAnswers.map(a => ({ questionId: a.questionId, value: a.answerValue })),
+      questionnaire: {
+        id: token.questionnaire.id,
+        name: token.questionnaire.name,
+        discipline: token.questionnaire.discipline,
+        category: token.questionnaire.category,
+        description: token.questionnaire.description,
+        durationMinutes: token.questionnaire.durationMinutes,
+        shuffleQuestions: token.questionnaire.shuffleQuestions,
+        questions: orderedQuestions.map((question) => ({
+          id: question.id,
+          statement: question.statement,
+          imageUrl: question.imageUrl,
+          options: question.options,
+          position: question.position,
+          weight: question.weight
+        }))
+      }
+    };
   }
 
   const sessionToken = isTestToken
@@ -192,6 +248,7 @@ export async function startAttempt(payloadOrApp: StudentStartRequest | FastifyIn
     attemptId: attempt.id,
     studentToken,
     startedAt: attempt.startedAt,
+    studentFullName: attempt.studentFullName,
     serverTime: new Date().toISOString(),
     questionnaire: {
       id: token.questionnaire.id,
@@ -323,6 +380,8 @@ export async function submitAttempt(payload: StudentSubmitRequest) {
     };
   });
 
+    // Limpar respostas parciais anteriores antes de salvar o lote final
+    await tx.answer.deleteMany({ where: { attemptId: attempt.id } });
     await tx.answer.createMany({ data: answerRows });
 
     const percentage = totalPoints === 0 ? 0 : Number(((score / totalPoints) * 100).toFixed(2));
@@ -429,6 +488,55 @@ export async function registerTabSwitch(attemptId: string) {
     where: { id: attemptId },
     data: {
       tabSwitches: { increment: 1 }
+    }
+  });
+}
+
+export async function savePartialAnswer(attemptId: string, questionId: string, answerValue: string) {
+  const attempt = await prisma.attempt.findUnique({
+    where: { id: attemptId },
+    include: {
+      questionnaire: {
+        include: {
+          questions: {
+            where: { id: questionId }
+          }
+        }
+      }
+    }
+  });
+
+  if (!attempt) throw new Error("ATTEMPT_NOT_FOUND");
+  if (attempt.finishedAt) throw new Error("ATTEMPT_ALREADY_FINISHED");
+
+  const question = attempt.questionnaire.questions[0];
+  if (!question) throw new Error("QUESTION_NOT_FOUND");
+
+  let isCorrect = false;
+  if (question.type === QuestionType.MULTIPLE_CHOICE && question.correctAnswer) {
+    isCorrect = answerValue.trim().toLowerCase() === question.correctAnswer.toLowerCase();
+  }
+
+  const points = isCorrect ? question.weight : 0;
+
+  return prisma.answer.upsert({
+    where: {
+      attemptId_questionId: {
+        attemptId,
+        questionId
+      }
+    },
+    update: {
+      answerValue: answerValue.trim(),
+      isCorrect,
+      points
+    },
+    create: {
+      attemptId,
+      questionId,
+      answerValue: answerValue.trim(),
+      isCorrect,
+      points
     }
   });
 }
