@@ -81,6 +81,12 @@ export async function sendTokensByEmail(input: SendTokensInput) {
     const tokenRecord = availableTokens[i];
 
     try {
+      // Reservar o token ANTES de enviar o e-mail (previne race condition)
+      await prisma.accessToken.update({
+        where: { id: tokenRecord.id },
+        data: { sentToEmail: email }
+      });
+
       await resend.emails.send({
         from: fromAddress,
         to: email,
@@ -97,13 +103,14 @@ export async function sendTokensByEmail(input: SendTokensInput) {
         }),
       });
 
-      await prisma.accessToken.update({
-        where: { id: tokenRecord.id },
-        data: { sentToEmail: email }
-      });
-
       results.push({ email, token: tokenRecord.code, status: "sent" });
     } catch (err) {
+      // Reverter a reserva se o envio falhar
+      await prisma.accessToken.update({
+        where: { id: tokenRecord.id },
+        data: { sentToEmail: null }
+      }).catch(() => {}); // Ignora erro do rollback
+
       const message = err instanceof Error ? err.message : "Falha desconhecida";
       results.push({ email, token: tokenRecord.code, status: "failed", error: message });
     }

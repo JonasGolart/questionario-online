@@ -116,6 +116,11 @@ export async function startAttempt(payloadOrApp: StudentStartRequest | FastifyIn
 
   // --- LOGICA DE RETOMADA DE PROVA ---
   if (token.attempt && !token.attempt.finishedAt) {
+    // Validar que é o mesmo aluno tentando retomar
+    if (token.attempt.studentFullName !== studentFullName) {
+      throw new Error("TOKEN_BOUND_TO_OTHER_STUDENT");
+    }
+    
     console.log(`[DEBUG] Retomando prova existente para o aluno: ${studentFullName}`);
     
     // Buscar as questões na ordem salva
@@ -495,21 +500,21 @@ export async function registerTabSwitch(attemptId: string) {
 export async function savePartialAnswer(attemptId: string, questionId: string, answerValue: string) {
   const attempt = await prisma.attempt.findUnique({
     where: { id: attemptId },
-    include: {
-      questionnaire: {
-        include: {
-          questions: {
-            where: { id: questionId }
-          }
-        }
-      }
-    }
+    select: { id: true, finishedAt: true, selectedQuestionIds: true }
   });
 
   if (!attempt) throw new Error("ATTEMPT_NOT_FOUND");
   if (attempt.finishedAt) throw new Error("ATTEMPT_ALREADY_FINISHED");
 
-  const question = attempt.questionnaire.questions[0];
+  // Validar que a questão pertence a esta tentativa
+  if (!attempt.selectedQuestionIds.includes(questionId)) {
+    throw new Error("QUESTION_NOT_FOUND");
+  }
+
+  const question = await prisma.question.findUnique({
+    where: { id: questionId },
+    select: { id: true, type: true, correctAnswer: true, weight: true }
+  });
   if (!question) throw new Error("QUESTION_NOT_FOUND");
 
   let isCorrect = false;

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { postJson, patchJson } from '../../../lib/api';
 
@@ -55,6 +55,7 @@ export default function TelaProva() {
   const [status, setStatus] = useState('');
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const clockOffsetRef = useRef(0);
 
   useEffect(() => {
     setIsMounted(true);
@@ -95,6 +96,7 @@ export default function TelaProva() {
         if (serverTimeStr) {
           const serverTime = new Date(serverTimeStr).getTime();
           clockOffset = serverTime - Date.now();
+          clockOffsetRef.current = clockOffset;
           console.log(`[DEBUG] Clock Offset detectado: ${clockOffset}ms`);
         }
 
@@ -165,14 +167,8 @@ export default function TelaProva() {
       
       const start = new Date(attempt.startedAt).getTime();
       const durationMs = attempt.questionnaire.durationMinutes * 60 * 1000;
-      
-      // Obter offset se disponível
-      let clockOffset = 0;
-      if (attempt.serverTime) {
-        clockOffset = new Date(attempt.serverTime).getTime() - Date.now();
-      }
 
-      const nowAdjusted = Date.now() + clockOffset;
+      const nowAdjusted = Date.now() + clockOffsetRef.current;
       const remaining = Math.max(0, Math.floor((start + durationMs - nowAdjusted) / 1000));
       
       setTimeLeft(remaining);
@@ -193,27 +189,27 @@ export default function TelaProva() {
     if (!attempt) return;
 
     const saveChanges = async () => {
-      // Identificar o que mudou
-      const changedQuestionId = Object.keys(answers).find(id => answers[id] !== lastSavedAnswers[id]);
+      // Identificar TODAS as respostas que mudaram
+      const changedIds = Object.keys(answers).filter(id => answers[id] !== lastSavedAnswers[id]);
       
-      if (changedQuestionId) {
-        const answerValue = answers[changedQuestionId];
+      for (const questionId of changedIds) {
+        const answerValue = answers[questionId];
         try {
           await postJson('/api/v1/student/save-answer', {
             attemptId: attempt.attemptId,
-            questionId: changedQuestionId,
+            questionId,
             answer: answerValue
           }, attempt.studentToken);
           
-          setLastSavedAnswers(prev => ({ ...prev, [changedQuestionId]: answerValue }));
-          console.log(`[AUTO-SAVE] Resposta salva para questão ${changedQuestionId}`);
+          setLastSavedAnswers(prev => ({ ...prev, [questionId]: answerValue }));
+          console.log(`[AUTO-SAVE] Resposta salva para questão ${questionId}`);
         } catch (err) {
           console.error('[AUTO-SAVE] Erro ao salvar resposta:', err);
         }
       }
     };
 
-    const timeout = setTimeout(saveChanges, 1000); // Debounce de 1s para não sobrecarregar
+    const timeout = setTimeout(saveChanges, 1000); // Debounce de 1s
     return () => clearTimeout(timeout);
   }, [answers, attempt, lastSavedAnswers]);
 
