@@ -56,6 +56,10 @@ export default function TelaProva() {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const clockOffsetRef = useRef(0);
+  const [warningCount, setWarningCount] = useState(0);
+  const [showWarning, setShowWarning] = useState(false);
+  const [autoSubmitted, setAutoSubmitted] = useState(false);
+  const warningCountRef = useRef(0);
 
   useEffect(() => {
     setIsMounted(true);
@@ -213,15 +217,34 @@ export default function TelaProva() {
     return () => clearTimeout(timeout);
   }, [answers, attempt, lastSavedAnswers]);
 
-  // Monitoramento de troca de abas / perda de foco
+  // Monitoramento de troca de abas / perda de foco — SISTEMA DE ADVERTÊNCIAS
   useEffect(() => {
     if (!attempt) return;
 
     const handleCheatingAttempt = async () => {
+      // Registrar no servidor
       try {
         await patchJson(`/api/v1/student/attempts/${attempt.attemptId}/tab-switch`, {}, attempt.studentToken);
       } catch (err) {
         console.error('Erro ao registrar troca de aba:', err);
+      }
+
+      // Incrementar advertências
+      const newCount = warningCountRef.current + 1;
+      warningCountRef.current = newCount;
+      setWarningCount(newCount);
+
+      if (newCount >= 2) {
+        // SEGUNDA ADVERTÊNCIA: encerrar prova automaticamente
+        setAutoSubmitted(true);
+        setShowWarning(true);
+        // Aguardar 3 segundos para o aluno ver a mensagem, depois enviar
+        setTimeout(() => {
+          handleSubmit();
+        }, 3000);
+      } else {
+        // PRIMEIRA ADVERTÊNCIA: exibir modal de alerta
+        setShowWarning(true);
       }
     };
 
@@ -242,7 +265,7 @@ export default function TelaProva() {
       document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('blur', onBlur);
     };
-  }, [attempt]);
+  }, [attempt, handleSubmit]);
 
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -515,6 +538,114 @@ export default function TelaProva() {
           })}
         </div>
       )}
+
+      {/* OVERLAY DE ADVERTÊNCIA ANTI-COLA */}
+      {showWarning && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '2rem',
+          animation: 'fadeIn 0.3s ease'
+        }}>
+          <div style={{
+            backgroundColor: autoSubmitted ? '#1a1a2e' : '#1a1a2e',
+            border: `2px solid ${autoSubmitted ? '#ef4444' : '#f59e0b'}`,
+            borderRadius: '16px',
+            padding: '2.5rem',
+            maxWidth: '500px',
+            textAlign: 'center',
+            boxShadow: `0 0 60px ${autoSubmitted ? 'rgba(239, 68, 68, 0.4)' : 'rgba(245, 158, 11, 0.4)'}`,
+          }}>
+            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>
+              {autoSubmitted ? '🚫' : '⚠️'}
+            </div>
+            <h2 style={{
+              color: autoSubmitted ? '#ef4444' : '#f59e0b',
+              fontSize: '1.5rem',
+              fontWeight: 800,
+              marginBottom: '1rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}>
+              {autoSubmitted ? 'PROVA ENCERRADA' : 'ADVERTÊNCIA'}
+            </h2>
+
+            {autoSubmitted ? (
+              <>
+                <p style={{ color: '#f87171', fontSize: '1.1rem', marginBottom: '1rem', lineHeight: 1.6 }}>
+                  Você saiu da aba da avaliação pela <strong>segunda vez</strong>.
+                </p>
+                <p style={{ color: '#fca5a5', fontSize: '1rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+                  Sua prova está sendo <strong>enviada automaticamente</strong> com as respostas feitas até este momento.
+                  Esta ação foi registrada e será reportada ao professor.
+                </p>
+                <div style={{
+                  padding: '0.75rem 1.5rem',
+                  backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(239, 68, 68, 0.3)'
+                }}>
+                  <span style={{ color: '#fca5a5', fontSize: '0.875rem' }}>
+                    Enviando em instantes...
+                  </span>
+                </div>
+              </>
+            ) : (
+              <>
+                <p style={{ color: '#fcd34d', fontSize: '1.1rem', marginBottom: '1rem', lineHeight: 1.6 }}>
+                  Foi detectado que você <strong>saiu da aba da avaliação</strong>.
+                </p>
+                <p style={{ color: '#d4d4d8', fontSize: '0.95rem', marginBottom: '0.75rem', lineHeight: 1.6 }}>
+                  Durante a prova, é <strong>proibido</strong> acessar outras abas, janelas ou aplicativos.
+                  Mantenha o foco exclusivamente nesta avaliação.
+                </p>
+                <div style={{
+                  padding: '0.75rem 1.5rem',
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  marginBottom: '1.5rem'
+                }}>
+                  <p style={{ color: '#f87171', fontSize: '0.9rem', fontWeight: 700, margin: 0 }}>
+                    ⚠️ Advertência {warningCount} de 2 — Na próxima, sua prova será encerrada e enviada automaticamente.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowWarning(false)}
+                  style={{
+                    padding: '0.75rem 2rem',
+                    backgroundColor: '#f59e0b',
+                    color: '#1a1a2e',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'transform 0.2s ease'
+                  }}
+                >
+                  Entendi, voltar à prova
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `}} />
     </div>
   );
 }
