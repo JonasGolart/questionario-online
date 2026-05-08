@@ -72,6 +72,12 @@
   3. **Timer de Alta Precisão:** Refatorado o cronômetro do aluno para ser baseado em tempo absoluto (`startedAt + duration`), tornando-o imune a suspensões de aba ou lentidão do `setInterval`. Mantida a proteção de `Clock Drift` (Offset servidor/local).
   4. **Unificação de Shuffle:** Removido o embaralhamento redundante no frontend. Agora apenas o backend decide a ordem (e a mantém consistente na retomada).
 
+- **[Antigravity -> VS Code] (2026-05-08): Revisão de Código + Sistema Anti-Cola:**
+  1. **Code Review (5 fixes):** Corrigidos 3 bugs de lógica (retomada sem validar nome, clock offset acelerando timer, auto-save parcial) e 2 de performance (JOIN triplo no auto-save, race condition no email).
+  2. **Sistema de Advertências Anti-Cola:** Implementado overlay de advertência na troca de aba. 1ª troca = advertência visual com botão "Entendi". 2ª troca = prova encerrada automaticamente e enviada com respostas parciais. O professor recebe o contador de `tabSwitches` no relatório.
+  3. **Rastreabilidade de Email:** Campo `sentToEmail` no `AccessToken` impede que o mesmo token seja enviado a múltiplos alunos. Token é "reservado" antes do envio e revertido em caso de falha.
+  4. **Validação de Retomada:** Adicionada verificação de `boundStudentName` antes de permitir retomada, impedindo que outro aluno acesse prova alheia.
+
 ## 🏗️ [CONTRACTS & ARCHITECTURE]
 *A fonte da verdade para parâmetros que ambos os agentes devem respeitar.*
 
@@ -108,7 +114,11 @@
 - [x] (Antigravity) Unificar Shuffle de questões apenas no Backend.
 - [x] (Antigravity) Refatorar Timer para cálculo de tempo real absoluto.
 - [x] (Antigravity) Suporte a retomada de prova (Resumption) com restauração de estado.
+- [x] (Antigravity) **Sistema Anti-Cola:** Overlay de advertência (2 strikes = auto-submit).
+- [x] (Antigravity) Rastreabilidade de tokens (`sentToEmail`) para evitar duplicação.
+- [x] (Antigravity) Revisão de código: 3 bugs de lógica + 2 melhorias de performance.
 
 ## ⏳ [PENDING TASKS (Backlog)]
 - [ ] (Ambos) Avaliar deploy para homologação na VPS (Coolify).
 - [ ] (Ambos) Configurar RESEND_API_KEY real no Coolify para ativar envio de tokens por e-mail.
+- [ ] (Antigravity) Tornar o limite de advertências configurável pelo professor no painel Admin.
