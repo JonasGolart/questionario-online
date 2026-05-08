@@ -80,12 +80,22 @@
   3. **Rastreabilidade de Email:** Campo `sentToEmail` no `AccessToken` impede que o mesmo token seja enviado a múltiplos alunos. Token é "reservado" antes do envio e revertido em caso de falha.
   4. **Validação de Retomada:** Adicionada verificação de `boundStudentName` antes de permitir retomada, impedindo que outro aluno acesse prova alheia.
 
+- **[Antigravity -> VS Code] (2026-05-08 noite): Correções Urgentes em Produção (Avaliação 1 de CA):**
+  1. **Rate Limit (HTTP 429):** Alunos em sala de aula (mesmo IP público) eram bloqueados por rate limiting agressivo. Corrigido: rota `/student/start` de 10→50 req/min, global de 100→300 req/min. Adicionada mensagem amigável em PT-BR para o erro 429.
+  2. **Reset de Token (Daniel Fernandes):** Token `ALUNO-KVGRNG` resetado acidentalmente — a tentativa finalizada do Daniel (nota 18/20) foi perdida. **Nota registrada em relatório PDF/HTML** (`relatorio_daniel_fernandes.html`). Token permanece disponível para o Daniel refazer.
+  3. **Vinculação de Token (Guilherme Bassetti Tomaz):** Token `ALUNO-JQ9XUW` vinculado ao Guilherme para permitir acesso à prova.
+  4. **Bug Crítico Anti-Cola (Double-Counting):** O sistema escutava `visibilitychange` **E** `blur` simultaneamente — uma única troca de aba contava como 2 strikes, encerrando a prova imediatamente. Removido o listener `blur` e adicionado debounce de 1 segundo.
+  5. **Limite de Advertências:** Aumentado de 2→3 strikes antes do auto-submit, conforme solicitação do professor.
+  6. **Aviso Prévio ao Aluno:** Adicionado painel de "Monitoramento Ativo" na tela de boas-vindas (`/aluno/boas-vindas`) com explicação visual das consequências (1ª e 2ª saída = advertência, 3ª = encerramento).
+
 ## 🏗️ [CONTRACTS & ARCHITECTURE]
 *A fonte da verdade para parâmetros que ambos os agentes devem respeitar.*
 
 - **Stack:** Frontend (Next.js 14+ App Router) | Backend (Node.js + Fastify + Prisma)
 - **Portas:** Web roda na `:3000` | API roda na `:3333` (ajustar no .env)
 - **Design System:** As variáveis CSS globais (Claro/Escuro) já estão em `apps/web/src/app/globals.css`. Não utilize Tailwind, utilize as classes nativas já criadas (`.card`, `.btn-primary`, `.input-field`).
+- **Rate Limits:** Global 300 req/min por IP | Rota `/student/start` 50 req/min por IP (configurado para salas de aula com IP compartilhado).
+- **Anti-Cola:** 3 strikes (apenas `visibilitychange`, sem `blur`, debounce 1s). Configurável no futuro pelo professor.
 
 ## ✅ [COMPLETED TASKS]
 - [x] (Antigravity) Estrutura base React + rotas.
@@ -111,19 +121,24 @@
 - [x] (VS Code) Fluxo de importação JSON com validação prévia, preview e confirmação explícita no Admin.
 - [x] (VS Code) Correção do contrato de atualização de questões por tipo em `PATCH /api/v1/admin/questions/:id`.
 - [x] (VS Code) Correção da suíte de teste crítico com compatibilidade `findFirst` no mock Prisma.
-
 - [x] (Antigravity) Implementar **Salvamento Automático de Progresso** (Persistência de respostas parciais).
 - [x] (Antigravity) Unificar Shuffle de questões apenas no Backend.
 - [x] (Antigravity) Refatorar Timer para cálculo de tempo real absoluto.
 - [x] (Antigravity) Suporte a retomada de prova (Resumption) com restauração de estado.
-- [x] (Antigravity) **Sistema Anti-Cola:** Overlay de advertência (2 strikes = auto-submit).
+- [x] (Antigravity) **Sistema Anti-Cola:** Overlay de advertência (3 strikes = auto-submit). Corrigido double-counting (removido `blur`, adicionado debounce).
 - [x] (Antigravity) Rastreabilidade de tokens (`sentToEmail`) para evitar duplicação.
 - [x] (Antigravity) Revisão de código: 3 bugs de lógica + 2 melhorias de performance.
+- [x] (Antigravity) **Rate Limit ajustado** para ambientes de sala de aula (IP compartilhado).
+- [x] (Antigravity) **Aviso prévio anti-cola** na tela de boas-vindas do aluno.
+- [x] (Antigravity) **Mensagem amigável** em PT-BR para erro HTTP 429 (Too Many Requests).
 
 ## ⏳ [PENDING TASKS (Backlog)]
 - [ ] (Ambos) Avaliar deploy para homologação na VPS (Coolify).
 - [ ] (Ambos) Configurar RESEND_API_KEY real no Coolify para ativar envio de tokens por e-mail.
-- [ ] (Antigravity) Tornar o limite de advertências configurável pelo professor no painel Admin.
+- [ ] (Antigravity) Tornar o limite de advertências (atualmente 3) configurável pelo professor no painel Admin.
 - [ ] (Ambos) **Rastreamento de Tempo por Questão:** Registrar timestamp de navegação entre questões no frontend e enviar mapa `{ questionId: segundosGastos }` no submit. Armazenar no `Answer` (nova coluna `timeSpentSeconds`).
 - [ ] (Ambos) **Relatório Comportamental (Individual + Turma):** Botão no painel Admin que gera relatório cruzando tempo gasto × dificuldade × acerto. Duas visões: individual (perfil do aluno) e coletiva (distribuição da turma).
 - [ ] (Antigravity) **Modelo de Acerto Verdadeiro:** Evoluir a expertise de análise tempo × acerto, considerando dificuldade da questão (EASY/MEDIUM/HARD). Questões difíceis respondidas em <30s com acerto = suspeita alta. Questões fáceis respondidas em >120s com erro = possível dificuldade real. Cruzar com tab switches para score de confiança.
+
+## 📋 [INCIDENT LOG]
+- **2026-05-08 18:39 BRT:** Token `ALUNO-KVGRNG` resetado acidentalmente durante troubleshooting de rate-limit. Tentativa do aluno **Daniel Fernandes Barbosa** (nota 18/20, 20 respostas, prova finalizada) foi deletada. Nota registrada em `relatorio_daniel_fernandes.html`. Token permanece vinculado ao Daniel para possível refazimento.
