@@ -2,6 +2,8 @@
 
 > **Regra de Ouro:** NENHUM agente deve modificar arquivos que estejam sob o `LOCK` do outro agente. Sempre leia este arquivo antes de iniciar uma nova tarefa e atualize-o ao finalizar.
 
+> **Regra de Sincronização:** Toda vez que o GEMINI.md for atualizado com novos handovers, tasks concluídas ou pendências, o agente DEVE também atualizar a nota correspondente no Obsidian (`Projeto_Questionario_Online.md`) para manter ambas as bases de conhecimento em sincronia.
+
 ## 🔐 [CURRENT_LOCKS]
 *Declare aqui no que você está trabalhando agora para evitar conflitos de edição.*
 
