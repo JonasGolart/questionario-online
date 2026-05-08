@@ -122,3 +122,6 @@
 - [ ] (Ambos) Avaliar deploy para homologação na VPS (Coolify).
 - [ ] (Ambos) Configurar RESEND_API_KEY real no Coolify para ativar envio de tokens por e-mail.
 - [ ] (Antigravity) Tornar o limite de advertências configurável pelo professor no painel Admin.
+- [ ] (Ambos) **Rastreamento de Tempo por Questão:** Registrar timestamp de navegação entre questões no frontend e enviar mapa `{ questionId: segundosGastos }` no submit. Armazenar no `Answer` (nova coluna `timeSpentSeconds`).
+- [ ] (Ambos) **Relatório Comportamental (Individual + Turma):** Botão no painel Admin que gera relatório cruzando tempo gasto × dificuldade × acerto. Duas visões: individual (perfil do aluno) e coletiva (distribuição da turma).
+- [ ] (Antigravity) **Modelo de Acerto Verdadeiro:** Evoluir a expertise de análise tempo × acerto, considerando dificuldade da questão (EASY/MEDIUM/HARD). Questões difíceis respondidas em <30s com acerto = suspeita alta. Questões fáceis respondidas em >120s com erro = possível dificuldade real. Cruzar com tab switches para score de confiança.
