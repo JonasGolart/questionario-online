@@ -244,6 +244,51 @@ export default function BoasVindas() {
           {attempt.questionnaire.description || 'Leia cada questão com atenção. Uma vez iniciada, a prova deve ser concluída sem interrupções. O progresso é salvo automaticamente ao navegar entre as questões.'}
         </div>
 
+        <div style={{
+          background: 'rgba(239, 68, 68, 0.08)',
+          border: '1px solid rgba(239, 68, 68, 0.25)',
+          borderLeft: '4px solid #ef4444',
+          borderRadius: '0 16px 16px 0',
+          padding: '1.5rem',
+          marginBottom: '2.5rem',
+          lineHeight: 1.6
+        }}>
+          <span className="info-label" style={{ color: '#ef4444' }}>⚠️ Monitoramento Ativo</span>
+          <p style={{ color: '#fca5a5', fontSize: '0.95rem', margin: '0.5rem 0 0.75rem' }}>
+            Durante a prova, <strong>é proibido</strong> sair desta aba, abrir outras janelas ou acessar qualquer aplicativo.
+          </p>
+          <div style={{
+            display: 'flex',
+            gap: '1rem',
+            flexWrap: 'wrap'
+          }}>
+            <div style={{
+              flex: 1,
+              minWidth: '180px',
+              background: 'rgba(245, 158, 11, 0.1)',
+              border: '1px solid rgba(245, 158, 11, 0.2)',
+              borderRadius: '10px',
+              padding: '0.75rem 1rem',
+              textAlign: 'center'
+            }}>
+              <span style={{ color: '#fbbf24', fontSize: '1.25rem', display: 'block' }}>⚡ 1ª saída</span>
+              <span style={{ color: '#d4d4d8', fontSize: '0.8rem' }}>Advertência na tela</span>
+            </div>
+            <div style={{
+              flex: 1,
+              minWidth: '180px',
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              borderRadius: '10px',
+              padding: '0.75rem 1rem',
+              textAlign: 'center'
+            }}>
+              <span style={{ color: '#f87171', fontSize: '1.25rem', display: 'block' }}>🚫 2ª saída</span>
+              <span style={{ color: '#d4d4d8', fontSize: '0.8rem' }}>Prova encerrada e enviada</span>
+            </div>
+          </div>
+        </div>
+
         <button 
           className="start-btn" 
           onClick={handleStart}
