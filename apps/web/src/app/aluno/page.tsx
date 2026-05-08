@@ -68,7 +68,8 @@ export default function AlunoEntrada() {
           TOKEN_BOUND_TO_OTHER_STUDENT: 'O nome informado é diferente do nome vinculado a este token.',
           QUESTIONNAIRE_NOT_PUBLISHED: 'Esta avaliação ainda não está publicada pelo professor.',
           NOT_SCHEDULED_FOR_TODAY: 'Esta avaliação está agendada para outra data. Verifique o cronograma.',
-          STUDENT_NAME_INVALID: 'Informe seu nome completo corretamente.'
+          STUDENT_NAME_INVALID: 'Informe seu nome completo corretamente.',
+          'Too Many Requests': 'Muitas tentativas simultâneas. Aguarde 1 minuto e tente novamente.'
         };
         setErrorMsg(map[error.message] ?? `Falha ao iniciar: ${error.message}`);
       } else {

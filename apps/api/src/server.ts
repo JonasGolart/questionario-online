@@ -26,7 +26,7 @@ await app.register(multipart, {
 });
 
 await app.register(rateLimit, {
-  max: 100,
+  max: 300,
   timeWindow: "1 minute"
 });
 

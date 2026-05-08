@@ -21,7 +21,7 @@ export async function studentRoutes(app: FastifyInstance) {
   app.post("/api/v1/student/start", {
     config: {
       rateLimit: {
-        max: 10,
+        max: 50,
         timeWindow: "1 minute"
       }
     }
