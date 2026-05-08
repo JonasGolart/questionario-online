@@ -221,7 +221,14 @@ export default function TelaProva() {
   useEffect(() => {
     if (!attempt) return;
 
+    let lastSwitchTime = 0; // Debounce para evitar contagem dupla
+
     const handleCheatingAttempt = async () => {
+      // Debounce: ignorar eventos duplicados dentro de 1 segundo
+      const now = Date.now();
+      if (now - lastSwitchTime < 1000) return;
+      lastSwitchTime = now;
+
       // Registrar no servidor
       try {
         await patchJson(`/api/v1/student/attempts/${attempt.attemptId}/tab-switch`, {}, attempt.studentToken);
@@ -234,8 +241,8 @@ export default function TelaProva() {
       warningCountRef.current = newCount;
       setWarningCount(newCount);
 
-      if (newCount >= 2) {
-        // SEGUNDA ADVERTÊNCIA: encerrar prova automaticamente
+      if (newCount >= 3) {
+        // TERCEIRA ADVERTÊNCIA: encerrar prova automaticamente
         setAutoSubmitted(true);
         setShowWarning(true);
         // Aguardar 3 segundos para o aluno ver a mensagem, depois enviar
@@ -243,7 +250,7 @@ export default function TelaProva() {
           handleSubmit();
         }, 3000);
       } else {
-        // PRIMEIRA ADVERTÊNCIA: exibir modal de alerta
+        // ADVERTÊNCIA: exibir modal de alerta
         setShowWarning(true);
       }
     };
@@ -254,16 +261,10 @@ export default function TelaProva() {
       }
     };
 
-    const onBlur = () => {
-      handleCheatingAttempt();
-    };
-
     document.addEventListener('visibilitychange', onVisibilityChange);
-    window.addEventListener('blur', onBlur);
 
     return () => {
       document.removeEventListener('visibilitychange', onVisibilityChange);
-      window.removeEventListener('blur', onBlur);
     };
   }, [attempt, handleSubmit]);
 
@@ -581,7 +582,7 @@ export default function TelaProva() {
             {autoSubmitted ? (
               <>
                 <p style={{ color: '#f87171', fontSize: '1.1rem', marginBottom: '1rem', lineHeight: 1.6 }}>
-                  Você saiu da aba da avaliação pela <strong>segunda vez</strong>.
+                  Você saiu da aba da avaliação pela <strong>terceira vez</strong>.
                 </p>
                 <p style={{ color: '#fca5a5', fontSize: '1rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
                   Sua prova está sendo <strong>enviada automaticamente</strong> com as respostas feitas até este momento.
@@ -615,7 +616,7 @@ export default function TelaProva() {
                   marginBottom: '1.5rem'
                 }}>
                   <p style={{ color: '#f87171', fontSize: '0.9rem', fontWeight: 700, margin: 0 }}>
-                    ⚠️ Advertência {warningCount} de 2 — Na próxima, sua prova será encerrada e enviada automaticamente.
+                    ⚠️ Advertência {warningCount} de 3 — Na 3ª saída, sua prova será encerrada e enviada automaticamente.
                   </p>
                 </div>
                 <button

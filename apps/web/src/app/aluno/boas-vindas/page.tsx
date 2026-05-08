@@ -271,7 +271,7 @@ export default function BoasVindas() {
               padding: '0.75rem 1rem',
               textAlign: 'center'
             }}>
-              <span style={{ color: '#fbbf24', fontSize: '1.25rem', display: 'block' }}>⚡ 1ª saída</span>
+              <span style={{ color: '#fbbf24', fontSize: '1.25rem', display: 'block' }}>⚡ 1ª e 2ª saída</span>
               <span style={{ color: '#d4d4d8', fontSize: '0.8rem' }}>Advertência na tela</span>
             </div>
             <div style={{
@@ -283,7 +283,7 @@ export default function BoasVindas() {
               padding: '0.75rem 1rem',
               textAlign: 'center'
             }}>
-              <span style={{ color: '#f87171', fontSize: '1.25rem', display: 'block' }}>🚫 2ª saída</span>
+              <span style={{ color: '#f87171', fontSize: '1.25rem', display: 'block' }}>🚫 3ª saída</span>
               <span style={{ color: '#d4d4d8', fontSize: '0.8rem' }}>Prova encerrada e enviada</span>
             </div>
           </div>
