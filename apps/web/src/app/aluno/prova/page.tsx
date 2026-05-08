@@ -7,6 +7,7 @@ import { postJson, patchJson } from '../../../lib/api';
 type ActiveAttempt = {
   attemptId: string;
   startedAt: string;
+  serverTime?: string;
   studentFullName: string;
   studentToken: string;
   savedAnswers?: Array<{ questionId: string; value: string }>;
